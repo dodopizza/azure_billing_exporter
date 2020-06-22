@@ -77,23 +77,45 @@ namespace AzureBillingExporter
             return result.access_token;
         }
         
-        public async Task<IAsyncEnumerable<CostResultRows>> GetDailyDataYesterday(CancellationToken cancel)
+        public async Task<IAsyncEnumerable<CostResultRows>> GetDailyData(CancellationToken cancel)
         {
             var dateTimeNow = DateTime.Now;
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 2);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
-            
-            var templateQuery = File.ReadAllText("./queries/get_daily_costs.json");
-            var template = Template.Parse(templateQuery); // Parses and compiles the template
-            var billingQuery = template.Render(Hash.FromAnonymousObject(new
-            {
-                DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
-                DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture)
-            }));
+            var granularity = "Daily";
 
+            var billingQuery = GetBillingQuery(dateStart, dateEnd, granularity);
             return ExecuteBillingQuery(billingQuery, cancel);
         }
+        
+        public async Task<CostResultRows> GetMonthlyData(CancellationToken cancel)
+        {
+            var dateTimeNow = DateTime.Now;
+            
+            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
+            var granularity = "Monthly";
 
+            var billingQuery = GetBillingQuery(dateStart, dateEnd, granularity);
+            await foreach (var monthData in ExecuteBillingQuery(billingQuery, cancel).WithCancellation(cancel))
+            {
+                return monthData;
+            }
+
+            return null;
+        }
+
+        private string GetBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity)
+        {
+            var templateQuery = File.ReadAllText("./queries/get_daily_costs.json");
+            var template = Template.Parse(templateQuery);
+            return template.Render(Hash.FromAnonymousObject(new
+            {
+                DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
+                DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture),
+                Granularity = granularity
+            }));
+        }
 
         private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, CancellationToken cancel)
         {
@@ -128,5 +150,6 @@ namespace AzureBillingExporter
                 };
             }
         }
+
     }
 }

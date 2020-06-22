@@ -1,7 +1,7 @@
 {
   "type": "ActualCost",
   "dataSet": {
-    "granularity": "Daily",
+    "granularity": "{{ Granularity }}",
     "aggregation": {
       "totalCost": {
         "name": "PreTaxCost",

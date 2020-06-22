@@ -1,4 +1,4 @@
-## How to run locally
+# How to run locally
 
 1. Log to Azure
 
@@ -30,3 +30,11 @@ dotnet run --project AzureBillingExporter/AzureBillingExporter.csproj
 ```bash
 curl http://localhost:5000/metrics
 ```
+
+# Metrics
+
+| *Metrics Name*  | *Description* |
+|---|---|
+| `azure_billing_daily_today`  | Today all costs |
+| `azure_billing_daily_yesterday`  | Yesterday all costs |
+| `azure_billing_daily_before_yesterday`  | Day before yesterday all costs |
