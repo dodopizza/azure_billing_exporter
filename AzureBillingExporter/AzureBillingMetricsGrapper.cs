@@ -12,6 +12,9 @@ namespace AzureBillingExporter
 
         public async Task DownloadFromApi(CancellationToken cancel)
         {
+            var restReader = new AzureRestReader();
+            restReader.GetDailyDataYesterday();
+            
             using var httpClient = new HttpClient();
             // Probe a remote system.
             var response = await httpClient.GetAsync("https://google.com", cancel);

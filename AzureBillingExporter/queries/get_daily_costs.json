@@ -1,0 +1,23 @@
+{
+  "type": "ActualCost",
+  "dataSet": {
+    "granularity": "Daily",
+    "aggregation": {
+      "totalCost": {
+        "name": "PreTaxCost",
+        "function": "Sum"
+      }
+    },
+    "sorting": [
+      {
+        "direction": "ascending",
+        "name": "UsageDate"
+      }
+    ]
+  },
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "{{ DayStart }}",
+    "to": "{{ DayEnd }}"
+  }
+}
