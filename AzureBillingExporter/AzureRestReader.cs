@@ -90,32 +90,14 @@ namespace AzureBillingExporter
 
         private string execute_billing_query(string billing_query)
         {
-            // """ Execute billing query by query text """
-            // azure_management_url = f"https://management.azure.com/subscriptions%2F{self.subsription_id}/providers/Microsoft.CostManagement/query?api-version=2019-10-01"
-            //
-            // headers = {
-            //     "content-type": "application/json",
-            //     "Authorization": f"Bearer {self.bearer_token}"
-            // }
-            //
-            // client = httplib2.Http()
-            // client.follow_all_redirects = True
-            //
-            //     (_, content) = client.request(uri=azure_management_url,
-            //     method="POST",
-            //     body=query_text,
-            //     headers=headers)
-            //
-            // billing_response_json = json.loads(content.decode('utf8'))
-
-            string azure_management_url =
-                $"https://management.azure.com/subscriptions%2F{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
+            var azureManagementUrl =
+                $"https://management.azure.com/subscriptions/{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
 
             using var httpClient = new HttpClient();
 
             var request = new HttpRequestMessage
             {
-                RequestUri = new Uri(azure_management_url),
+                RequestUri = new Uri(azureManagementUrl),
                 Method = HttpMethod.Post
             };
             request.Content = new StringContent(
