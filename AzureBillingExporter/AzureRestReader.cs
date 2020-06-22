@@ -5,6 +5,8 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using DotLiquid;
 using Newtonsoft.Json;
@@ -25,6 +27,13 @@ namespace AzureBillingExporter
         public string access_token { get; set; }
     }
     
+    public class CostResultRows
+    {
+        public double Cost { get; set; }
+        public string Date { get; set; }
+        public string Currency { get; set; }
+    }
+    
     public class AzureRestReader
     {
         private ApiSettings ApiSettings { get; }
@@ -42,10 +51,6 @@ namespace AzureBillingExporter
             BearerToken = GetBearerToken();
         }
 
-        /// <summary>
-        /// Authenticate to Azure vie service principals
-        /// </summary>
-        /// <returns>bearer token</returns>
         private string GetBearerToken()
         {
             var azureAdUrl = $"https://login.microsoftonline.com/{ApiSettings.TenantId}/oauth2/token";
@@ -72,25 +77,25 @@ namespace AzureBillingExporter
             return result.access_token;
         }
         
-        public IEnumerable<CostResultRows> GetDailyDataYesterday()
+        public async Task<IAsyncEnumerable<CostResultRows>> GetDailyDataYesterday(CancellationToken cancel)
         {
             var dateTimeNow = DateTime.Now;
-            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 1);
-            var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 1, 23, 59, 59);
+            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 2);
+            var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             
             var templateQuery = File.ReadAllText("./queries/get_daily_costs.json");
             var template = Template.Parse(templateQuery); // Parses and compiles the template
-            string billing_query = template.Render(Hash.FromAnonymousObject(new
+            var billingQuery = template.Render(Hash.FromAnonymousObject(new
             {
                 DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
                 DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture)
             }));
 
-            return execute_billing_query(billing_query);
+            return ExecuteBillingQuery(billingQuery, cancel);
         }
 
 
-        private IEnumerable<CostResultRows> execute_billing_query(string billing_query)
+        private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, CancellationToken cancel)
         {
             var azureManagementUrl =
                 $"https://management.azure.com/subscriptions/{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
@@ -103,37 +108,25 @@ namespace AzureBillingExporter
                 Method = HttpMethod.Post
             };
             request.Content = new StringContent(
-                billing_query,
+                billingQuery,
                 Encoding.UTF8,
                 "application/json");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization =
                 new AuthenticationHeaderValue("Bearer", BearerToken);
 
-            var response = httpClient.SendAsync(request).Result;
+            var response = await httpClient.SendAsync(request, cancel);
 
-            dynamic res = JsonConvert.DeserializeObject(response.Content.ReadAsStringAsync().Result);
-            var costResult = new List<CostResultRows>();
+            dynamic res = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
             foreach (var row in res.properties.rows)
             {
-                costResult.Add(new CostResultRows
+                yield return new CostResultRows
                 {
                     Cost = double.Parse(JArray.Parse(row.ToString())[0].ToString()),
                     Date = JArray.Parse(row.ToString())[1].ToString(),
                     Currency = JArray.Parse(row.ToString())[2].ToString() 
-                });
+                };
             }
-
-            return costResult;
         }
     }
-
-    
-    public class CostResultRows
-    {
-        public double Cost { get; set; }
-        public string Date { get; set; }
-        public string Currency { get; set; }
-    }
-
 }
