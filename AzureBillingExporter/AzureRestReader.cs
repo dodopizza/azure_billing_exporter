@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net.Http;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Web;
 using DotLiquid;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace AzureBillingExporter
 {
@@ -70,7 +72,7 @@ namespace AzureBillingExporter
             return result.access_token;
         }
         
-        public string GetDailyDataYesterday()
+        public IEnumerable<CostResultRows> GetDailyDataYesterday()
         {
             var dateTimeNow = DateTime.Now;
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 1);
@@ -88,7 +90,7 @@ namespace AzureBillingExporter
         }
 
 
-        private string execute_billing_query(string billing_query)
+        private IEnumerable<CostResultRows> execute_billing_query(string billing_query)
         {
             var azureManagementUrl =
                 $"https://management.azure.com/subscriptions/{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
@@ -110,8 +112,28 @@ namespace AzureBillingExporter
 
             var response = httpClient.SendAsync(request).Result;
 
-            var result = JsonConvert.DeserializeObject(response.Content.ReadAsStringAsync().Result);
-            return "";
+            dynamic res = JsonConvert.DeserializeObject(response.Content.ReadAsStringAsync().Result);
+            var costResult = new List<CostResultRows>();
+            foreach (var row in res.properties.rows)
+            {
+                costResult.Add(new CostResultRows
+                {
+                    Cost = double.Parse(JArray.Parse(row.ToString())[0].ToString()),
+                    Date = JArray.Parse(row.ToString())[1].ToString(),
+                    Currency = JArray.Parse(row.ToString())[2].ToString() 
+                });
+            }
+
+            return costResult;
         }
     }
+
+    
+    public class CostResultRows
+    {
+        public double Cost { get; set; }
+        public string Date { get; set; }
+        public string Currency { get; set; }
+    }
+
 }
