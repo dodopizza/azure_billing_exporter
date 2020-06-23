@@ -21,19 +21,32 @@ namespace AzureBillingExporter
         private static readonly Gauge MonthlyCosts =
             Metrics.CreateGauge("azure_billing_monthly", "This month costs");
 
-        private static readonly IEnumerable<Gauge> CustomMetrics;
+        private static readonly Dictionary<string, Gauge> CustomMetrics = new Dictionary<string, Gauge>();    // <filename, Gauge>
         static AzureBillingMetricsGrapper()
         {
-            CustomMetrics = new List<Gauge>();
+            var customQueriesFiles = Directory.GetFiles("custom_queries");
+            foreach (var fileName in customQueriesFiles)
+            {
+                var metricName = Path.GetFileNameWithoutExtension(fileName);
+                CustomMetrics.Add(fileName, 
+                    Metrics.CreateGauge(metricName, $"Custom metrics from {metricName}",
+                                    new GaugeConfiguration()
+                                    {
+                                        // Here you specify only the names of the labels.
+                                        LabelNames = new[] { "ResourceLocation" }
+                                    }));
+            }
         }
         
         public async Task DownloadFromApi(CancellationToken cancel)
         {
             var restReader = new AzureRestReader();
+            
+            //    Daily, monthly costs
             var dailyCosts = await  restReader.GetDailyData(cancel);
             var monthlyCosts = await  restReader.GetMonthlyData(cancel);
 
-            await foreach(var dayData in dailyCosts)
+            await foreach(var dayData in dailyCosts.WithCancellation(cancel))
             {
                 if (dayData.Date == DateTime.Now.ToString("yyyyMMdd"))
                 {
@@ -50,6 +63,19 @@ namespace AzureBillingExporter
             }
             
             MonthlyCosts.Set(monthlyCosts.Cost);
+            
+            // Custom metrics
+            foreach (var customMetric in CustomMetrics)
+            {
+                await foreach (var customData in (await restReader.GetCustomData(cancel, customMetric.Key)).WithCancellation(cancel))
+                {
+                    
+                    customMetric
+                        .Value
+                        .WithLabels(customData.GetByColumnName("ResourceLocation"))
+                        .Set(customData.Cost);
+                }
+            }
         }
     }
 }

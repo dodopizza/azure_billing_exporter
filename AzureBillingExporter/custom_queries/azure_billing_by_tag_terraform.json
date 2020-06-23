@@ -1,0 +1,20 @@
+{
+  "type": "ActualCost",
+  "dataSet": {
+    "granularity": "None",
+    "aggregation": { "totalCost": { "name": "PreTaxCost", "function": "Sum" } },
+    "grouping": [{ "type": "Dimension", "name": "ResourceLocation" }],
+    "filter": {
+      "Tags": {
+        "Name": "managed-by",
+        "Operator": "In",
+        "Values": ["terraform"]
+      }
+    }
+  },
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "{{ DayStart }}",
+    "to": "{{ DayStart }}"
+  }
+}

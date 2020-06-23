@@ -26,14 +26,7 @@ namespace AzureBillingExporter
     {
         public string access_token { get; set; }
     }
-    
-    public class CostResultRows
-    {
-        public double Cost { get; set; }
-        public string Date { get; set; }
-        public string Currency { get; set; }
-    }
-    
+
     public class AzureRestReader
     {
         private ApiSettings ApiSettings { get; }
@@ -76,6 +69,17 @@ namespace AzureBillingExporter
 
             return result.access_token;
         }
+
+        public async Task<IAsyncEnumerable<CostResultRows>> GetCustomData(CancellationToken cancel, string templateFileName)
+        {
+            var dateTimeNow = DateTime.Now;
+            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
+            var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
+            var granularity = "Daily";
+
+            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity, templateFileName);
+            return ExecuteBillingQuery(billingQuery, cancel);
+        }
         
         public async Task<IAsyncEnumerable<CostResultRows>> GetDailyData(CancellationToken cancel)
         {
@@ -84,7 +88,7 @@ namespace AzureBillingExporter
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Daily";
 
-            var billingQuery = GetBillingQuery(dateStart, dateEnd, granularity);
+            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity);
             return ExecuteBillingQuery(billingQuery, cancel);
         }
         
@@ -96,7 +100,7 @@ namespace AzureBillingExporter
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Monthly";
 
-            var billingQuery = GetBillingQuery(dateStart, dateEnd, granularity);
+            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity);
             await foreach (var monthData in ExecuteBillingQuery(billingQuery, cancel).WithCancellation(cancel))
             {
                 return monthData;
@@ -105,9 +109,9 @@ namespace AzureBillingExporter
             return null;
         }
 
-        private string GetBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity)
+        private static string GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity, string templateFile = "./queries/get_daily_monthly_costs.json")
         {
-            var templateQuery = File.ReadAllText("./queries/get_daily_costs.json");
+            var templateQuery = File.ReadAllText(templateFile);
             var template = Template.Parse(templateQuery);
             return template.Render(Hash.FromAnonymousObject(new
             {
@@ -127,29 +131,40 @@ namespace AzureBillingExporter
             var request = new HttpRequestMessage
             {
                 RequestUri = new Uri(azureManagementUrl),
-                Method = HttpMethod.Post
+                Method = HttpMethod.Post,
+                Content = new StringContent(
+                    billingQuery,
+                    Encoding.UTF8,
+                    "application/json")
             };
-            request.Content = new StringContent(
-                billingQuery,
-                Encoding.UTF8,
-                "application/json");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization =
                 new AuthenticationHeaderValue("Bearer", BearerToken);
 
             var response = await httpClient.SendAsync(request, cancel);
 
-            dynamic res = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
-            foreach (var row in res.properties.rows)
+            dynamic json = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
+            
+            foreach (var row in json.properties.rows)
             {
-                yield return new CostResultRows
-                {
-                    Cost = double.Parse(JArray.Parse(row.ToString())[0].ToString()),
-                    Date = JArray.Parse(row.ToString())[1].ToString(),
-                    Currency = JArray.Parse(row.ToString())[2].ToString() 
-                };
+                yield return CastRow(json.properties.columns, row);
             }
         }
 
+        private CostResultRows CastRow(dynamic columns, dynamic singleRow)
+        {
+            var parsedRow = new CostResultRows();
+                foreach (var val in JArray.Parse(singleRow.ToString()))
+                {
+                    parsedRow.Values.Add(val.ToString());
+                }
+
+                foreach (var column in columns)
+                {
+                    parsedRow.ColumnNames.Add(column.name.ToString());
+                }
+
+                return parsedRow;
+        }
     }
 }
