@@ -4,13 +4,13 @@ using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using DotLiquid;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace AzureBillingExporter
 {
@@ -77,7 +77,7 @@ namespace AzureBillingExporter
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Daily";
 
-            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity, templateFileName);
+            var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity, templateFileName);
             return ExecuteBillingQuery(billingQuery, cancel);
         }
         
@@ -88,7 +88,7 @@ namespace AzureBillingExporter
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Daily";
 
-            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity);
+            var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
             return ExecuteBillingQuery(billingQuery, cancel);
         }
         
@@ -100,7 +100,7 @@ namespace AzureBillingExporter
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Monthly";
 
-            var billingQuery = GenerateBillingQuery(dateStart, dateEnd, granularity);
+            var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
             await foreach (var monthData in ExecuteBillingQuery(billingQuery, cancel).WithCancellation(cancel))
             {
                 return monthData;
@@ -109,19 +109,19 @@ namespace AzureBillingExporter
             return null;
         }
 
-        private static string GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity, string templateFile = "./queries/get_daily_monthly_costs.json")
+        private static async Task<string> GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity, string templateFile = "./queries/get_daily_monthly_costs.json")
         {
-            var templateQuery = File.ReadAllText(templateFile);
+            var templateQuery =await File.ReadAllTextAsync(templateFile);
             var template = Template.Parse(templateQuery);
-            return template.Render(Hash.FromAnonymousObject(new
+            return await Task.Run(()=>template.Render(Hash.FromAnonymousObject(new
             {
                 DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
                 DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
-            }));
+            })));
         }
 
-        private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, CancellationToken cancel)
+        private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, [EnumeratorCancellation] CancellationToken cancel)
         {
             var azureManagementUrl =
                 $"https://management.azure.com/subscriptions/{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
@@ -147,24 +147,8 @@ namespace AzureBillingExporter
             
             foreach (var row in json.properties.rows)
             {
-                yield return CastRow(json.properties.columns, row);
+                yield return CostResultRows.Cast(json.properties.columns, row);
             }
-        }
-
-        private CostResultRows CastRow(dynamic columns, dynamic singleRow)
-        {
-            var parsedRow = new CostResultRows();
-                foreach (var val in JArray.Parse(singleRow.ToString()))
-                {
-                    parsedRow.Values.Add(val.ToString());
-                }
-
-                foreach (var column in columns)
-                {
-                    parsedRow.ColumnNames.Add(column.name.ToString());
-                }
-
-                return parsedRow;
         }
     }
 }

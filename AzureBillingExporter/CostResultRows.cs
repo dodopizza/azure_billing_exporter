@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace AzureBillingExporter
 {
@@ -39,5 +40,21 @@ namespace AzureBillingExporter
         }
         public List<string> ColumnNames { get; } = new List<string>();
         public List<string> Values { get;  } = new List<string>();
+        
+        public static CostResultRows Cast(dynamic columns, dynamic singleRow)
+        {
+            var parsedRow = new CostResultRows();
+            foreach (var val in JArray.Parse(singleRow.ToString()))
+            {
+                parsedRow.Values.Add(val.ToString());
+            }
+
+            foreach (var column in columns)
+            {
+                parsedRow.ColumnNames.Add(column.name.ToString());
+            }
+
+            return parsedRow;
+        }
     }
 }
