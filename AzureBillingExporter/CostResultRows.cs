@@ -38,6 +38,18 @@ namespace AzureBillingExporter
 
             return null;
         }
+
+        public double GetValueByColumnName(string name)
+        {
+            var strVal = GetByColumnName(name);
+            
+            if (string.IsNullOrEmpty(strVal))
+            {
+                return 0;
+            }
+                
+            return double.Parse(strVal);
+        }
         public List<string> ColumnNames { get; } = new List<string>();
         public List<string> Values { get;  } = new List<string>();
         

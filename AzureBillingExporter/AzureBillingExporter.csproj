@@ -11,6 +11,7 @@
       <PackageReference Include="prometheus-net.AspNetCore" Version="3.6.0" />
       <PackageReference Include="prometheus-net.AspNetCore.Grpc" Version="3.6.0" />
       <PackageReference Include="prometheus-net.AspNetCore.HealthChecks" Version="3.6.0" />
+      <PackageReference Include="YamlDotNet" Version="8.1.2" />
     </ItemGroup>
 
     <ItemGroup>

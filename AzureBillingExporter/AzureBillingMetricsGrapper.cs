@@ -20,24 +20,12 @@ namespace AzureBillingExporter
         private static readonly Gauge MonthlyCosts =
             Metrics.CreateGauge("azure_billing_monthly", "This month costs");
 
-        private static readonly Dictionary<string, Gauge> CustomMetrics = new Dictionary<string, Gauge>();    // <filename, Gauge>
+        private static 
+            CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
+        
         static AzureBillingMetricsGrapper()
         {
-            var customQueriesFiles = Directory.GetFiles("custom_queries");
-            foreach (var fileName in customQueriesFiles)
-            {
-                var metricName = Path.GetFileNameWithoutExtension(fileName);
-                CustomMetrics.Add(fileName, 
-                    Metrics.CreateGauge(metricName, $"Custom metrics from {metricName}",
-                                    new GaugeConfiguration()
-                                    {
-                                        LabelNames = new[]
-                                        {
-                                            //"ResourceLocation", 
-                                            "ResourceGroupName"
-                                        }
-                                    }));
-            }
+            CustomCollectorConfiguration.ReadCustomCollectorConfig();
         }
         
         public async Task DownloadFromApi(CancellationToken cancel)
@@ -63,27 +51,15 @@ namespace AzureBillingExporter
                     DailyBeforeYesterdayCosts.Set(dayData.Cost);
                 }
             }
-            
+
             MonthlyCosts.Set(monthlyCosts.Cost);
-            
-            // Custom metrics
-            foreach (var (metricKey, gauge) in CustomMetrics)
+
+            foreach (var (key, value) in CustomCollectorConfiguration.CustomGaugeMetrics)
             {
-                await foreach (var customData in (await restReader.GetCustomData(cancel, metricKey)).WithCancellation(cancel))
+                await foreach (var customData in
+                    (await restReader.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
                 {
-                    if (!string.IsNullOrEmpty(customData.GetByColumnName("ResourceLocation")))
-                    {
-                        // gauge
-                        //     .WithLabels(customData.GetByColumnName("ResourceLocation"))
-                        //     .Set(customData.Cost);
-                    }
-                    else
-                    {
-                        gauge
-                            .WithLabels(customData.GetByColumnName("ResourceGroupName"))
-                            .Set(customData.Cost);
-                        
-                    }
+                    CustomCollectorConfiguration.SetValues(key, customData);
                 }
             }
         }
