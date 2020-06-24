@@ -79,7 +79,8 @@ namespace AzureBillingExporter
         public async Task<IAsyncEnumerable<CostResultRows>> GetDailyData(CancellationToken cancel)
         {
             var dateTimeNow = DateTime.Now;
-            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 2);
+            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
+            dateStart = dateStart.AddDays(-2);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Daily";
 
@@ -112,14 +113,22 @@ namespace AzureBillingExporter
             var template = Template.Parse(templateQuery);
             
             var currentMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            var prevMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            prevMonthStart = prevMonthStart.AddMonths(-1);
+            
             var todayEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
+            
+            var yesterdayStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
+            yesterdayStart = yesterdayStart.AddDays(-1);
 
             return template.Render(Hash.FromAnonymousObject(new
             {
                 DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
                 DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture),
                 CurrentMonthStart = currentMonthStart.ToString("o", CultureInfo.InvariantCulture),
+                PrevMonthStart = prevMonthStart.ToString("o", CultureInfo.InvariantCulture),
                 TodayEnd = todayEnd.ToString("o", CultureInfo.InvariantCulture),
+                YesterdayStart = yesterdayStart.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
             }));
         }

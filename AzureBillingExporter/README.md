@@ -42,9 +42,37 @@ curl http://localhost:5000/metrics
 
 # Custom Metrics
 
-DateTime Constants (using server datetime):
-`CurrentMonthStart` - This month start date time. For instance, '2020-06-01T00:00:00.0000000'
-`TodayEnd` - End of current date. For instance, '2020-06-22T23:59:59.0000000'
+DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
+`CurrentMonthStart` - This month start date time. For instance '2020-06-01T00:00:00.0000000'
+`PrevMonthStart` - Previous month start date. For instance '2020-05-01T00:00:00.0000000'
+`TodayEnd` - End of current date. For instance '2020-06-22T23:59:59.0000000'
+`YesterdayStart` - Yesterday start date. Form instance '2020-06-22T00:00:00.0000000'
+
+All this constants you can use into billing query json files:
+```json
+  "timePeriod": {
+    "from": "{{ PrevMonthStart }}",
+    "to": "{{ TodayEnd }}"
+  }
+```
+
+## Set custom metrics configs into `custom_collectors.yml`
+
+```yaml
+# A Prometheus metric with (optional) additional labels, value and labels populated from one query.
+metrics:
+  - metric_name: azure_billing_by_resource_group
+    type: gauge
+    help: 'Costs by resource group by current month'
+    key_labels:
+      # Populated from the `market` column of each row.
+      - ResourceGroupName
+    static_labels:
+      # Arbitrary key/value pair
+      company: dodo
+    value: PreTaxCost
+    query_file: './custom_queries/azure_billing_by_resource_group.json'
+```
 
 # Try Azure Billing Query on sandbox
 

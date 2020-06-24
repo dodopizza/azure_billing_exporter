@@ -92,19 +92,17 @@ namespace AzureBillingExporter
         {
             var gauge = CustomGaugeMetrics[key];
 
+            var labelValues = new List<string>();
+            labelValues.AddRange(key.StaticLabel.Select(x => x.Value));
             foreach (var keyLabel in key.KeyLabels)
             {
-                var labels = key.StaticLabel.Select(x => x.Value).ToList();
                 var dataColumnByKeyLabel = customData.GetByColumnName(keyLabel);
-                labels.Add(dataColumnByKeyLabel);
-                
-                if (!string.IsNullOrEmpty(dataColumnByKeyLabel))
-                {
-                    gauge
-                        .WithLabels(labels.ToArray())
-                        .Set(customData.GetValueByColumnName(key.Value));
-                }
+                labelValues.Add(dataColumnByKeyLabel);
             }
+            
+            gauge
+                .WithLabels(labelValues.ToArray())
+                .Set(customData.GetValueByColumnName(key.Value));
         }
     }
 }
