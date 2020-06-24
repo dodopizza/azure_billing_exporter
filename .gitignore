@@ -4,3 +4,4 @@ obj/
 .idea
 
 /AzureBillingExporter/.secrets/billing_reader_sp.json
+/AzureBillingExporter.sln.DotSettings.user

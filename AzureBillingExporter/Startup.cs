@@ -8,7 +8,7 @@ namespace AzureBillingExporter
 {
     public class Startup
     {
-        private static readonly AzureBillingMetricsGrapper _billingGrapper = new AzureBillingMetricsGrapper();
+        private static readonly AzureBillingMetricsGrapper BillingGrapper = new AzureBillingMetricsGrapper();
         
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -28,7 +28,7 @@ namespace AzureBillingExporter
             
             Metrics.DefaultRegistry.AddBeforeCollectCallback(async (cancel) =>
                 {
-                    await _billingGrapper.DownloadFromApi(cancel);
+                    await BillingGrapper.DownloadFromApi(cancel);
                 });
             
             // ASP.NET Core 3 or newer

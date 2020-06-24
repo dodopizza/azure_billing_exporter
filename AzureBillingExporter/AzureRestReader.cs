@@ -35,9 +35,9 @@ namespace AzureBillingExporter
 
         public AzureRestReader()
         {
-            var secret_file_path = ".secrets/billing_reader_sp.json";
-            using StreamReader r = new StreamReader(secret_file_path);
-            string json = r.ReadToEnd();
+            var secretFilePath = ".secrets/billing_reader_sp.json";
+            using var r = new StreamReader(secretFilePath);
+            var json = r.ReadToEnd();
             var settings = JsonConvert.DeserializeObject<ApiSettings>(json);
 
             ApiSettings = settings;
@@ -75,7 +75,7 @@ namespace AzureBillingExporter
             var dateTimeNow = DateTime.Now;
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
-            var granularity = "Daily";
+            const string granularity = "Daily";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity, templateFileName);
             return ExecuteBillingQuery(billingQuery, cancel);
@@ -86,7 +86,7 @@ namespace AzureBillingExporter
             var dateTimeNow = DateTime.Now;
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 2);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
-            var granularity = "Daily";
+            const string granularity = "Daily";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
             return ExecuteBillingQuery(billingQuery, cancel);

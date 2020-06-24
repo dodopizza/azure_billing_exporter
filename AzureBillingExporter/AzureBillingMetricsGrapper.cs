@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Prometheus;
@@ -65,13 +64,12 @@ namespace AzureBillingExporter
             MonthlyCosts.Set(monthlyCosts.Cost);
             
             // Custom metrics
-            foreach (var customMetric in CustomMetrics)
+            foreach (var (metricKey, gauge) in CustomMetrics)
             {
-                await foreach (var customData in (await restReader.GetCustomData(cancel, customMetric.Key)).WithCancellation(cancel))
+                await foreach (var customData in (await restReader.GetCustomData(cancel, metricKey)).WithCancellation(cancel))
                 {
                     
-                    customMetric
-                        .Value
+                    gauge
                         .WithLabels(customData.GetByColumnName("ResourceLocation"))
                         .Set(customData.Cost);
                 }
