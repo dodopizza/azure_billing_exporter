@@ -72,12 +72,7 @@ namespace AzureBillingExporter
 
         public async Task<IAsyncEnumerable<CostResultRows>> GetCustomData(CancellationToken cancel, string templateFileName)
         {
-            var dateTimeNow = DateTime.Now;
-            var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
-            var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
-            const string granularity = "Daily";
-
-            var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity, templateFileName);
+            var billingQuery = await GenerateBillingQuery(DateTime.MaxValue, DateTime.MaxValue, "None", templateFileName);
             return ExecuteBillingQuery(billingQuery, cancel);
         }
         
@@ -86,7 +81,7 @@ namespace AzureBillingExporter
             var dateTimeNow = DateTime.Now;
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day - 2);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
-            const string granularity = "Daily";
+            var granularity = "Daily";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
             return ExecuteBillingQuery(billingQuery, cancel);
@@ -109,16 +104,24 @@ namespace AzureBillingExporter
             return null;
         }
 
-        private static async Task<string> GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity, string templateFile = "./queries/get_daily_monthly_costs.json")
+        private async Task<string> GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity = "None", string templateFile = "./queries/get_daily_or_monthly_costs.json")
         {
+            var dateTimeNow = DateTime.Now;
+            
             var templateQuery =await File.ReadAllTextAsync(templateFile);
             var template = Template.Parse(templateQuery);
-            return await Task.Run(()=>template.Render(Hash.FromAnonymousObject(new
+            
+            var currentMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            var todayEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
+
+            return template.Render(Hash.FromAnonymousObject(new
             {
                 DayStart = dateStart.ToString("o", CultureInfo.InvariantCulture), 
                 DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture),
+                CurrentMonthStart = currentMonthStart.ToString("o", CultureInfo.InvariantCulture),
+                TodayEnd = todayEnd.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
-            })));
+            }));
         }
 
         private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, [EnumeratorCancellation] CancellationToken cancel)

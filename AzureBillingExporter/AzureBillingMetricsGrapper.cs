@@ -31,8 +31,11 @@ namespace AzureBillingExporter
                     Metrics.CreateGauge(metricName, $"Custom metrics from {metricName}",
                                     new GaugeConfiguration()
                                     {
-                                        // Here you specify only the names of the labels.
-                                        LabelNames = new[] { "ResourceLocation" }
+                                        LabelNames = new[]
+                                        {
+                                            //"ResourceLocation", 
+                                            "ResourceGroupName"
+                                        }
                                     }));
             }
         }
@@ -68,10 +71,19 @@ namespace AzureBillingExporter
             {
                 await foreach (var customData in (await restReader.GetCustomData(cancel, metricKey)).WithCancellation(cancel))
                 {
-                    
-                    gauge
-                        .WithLabels(customData.GetByColumnName("ResourceLocation"))
-                        .Set(customData.Cost);
+                    if (!string.IsNullOrEmpty(customData.GetByColumnName("ResourceLocation")))
+                    {
+                        // gauge
+                        //     .WithLabels(customData.GetByColumnName("ResourceLocation"))
+                        //     .Set(customData.Cost);
+                    }
+                    else
+                    {
+                        gauge
+                            .WithLabels(customData.GetByColumnName("ResourceGroupName"))
+                            .Set(customData.Cost);
+                        
+                    }
                 }
             }
         }

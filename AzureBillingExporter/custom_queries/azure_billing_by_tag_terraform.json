@@ -14,7 +14,7 @@
   },
   "timeframe": "Custom",
   "timePeriod": {
-    "from": "{{ DayStart }}",
-    "to": "{{ DayStart }}"
+    "from": "{{ CurrentMonthStart }}",
+    "to": "{{ TodayEnd }}"
   }
 }

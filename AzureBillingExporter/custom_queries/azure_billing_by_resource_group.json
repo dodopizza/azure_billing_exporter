@@ -1,0 +1,29 @@
+{
+  "type": "ActualCost",
+  "dataSet": {
+    "granularity": "None",
+    "aggregation": {
+      "totalCost": {
+        "name": "PreTaxCost",
+        "function": "Sum"
+      }
+    },
+    "grouping": [
+      {
+        "type": "Dimension",
+        "name": "ResourceGroupName"
+      }
+    ],
+    "sorting": [
+      {
+        "direction": "descending",
+        "name": "PreTaxCost"
+      }
+    ]
+  },
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "{{ CurrentMonthStart }}",
+    "to": "{{ TodayEnd }}"
+  }
+}
