@@ -1,6 +1,6 @@
 # A Prometheus metric with (optional) additional labels, value and labels populated from one query.
 metrics:
-  - metric_name: azire_billing_by_resource_group
+  - metric_name: azure_billing_by_resource_group
     type: gauge
     help: 'Costs by resource group by current month'
     key_labels:
@@ -12,7 +12,7 @@ metrics:
     value: PreTaxCost
     query_file: './custom_queries/azure_billing_by_resource_group.json'
 
-  - metric_name: azire_billing_create_by_terraform
+  - metric_name: azure_billing_create_by_terraform
     type: gauge
     help: 'Costs by resource group by current month'
     key_labels:

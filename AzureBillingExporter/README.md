@@ -1,17 +1,29 @@
 # How to run locally
 
-1. Log to Azure
+1. Create ServicePrincipal
+
+
+2. Set configuration
+
+2.1. Environment Variables
 
 ```bash
-az login
+    EXPORT ApiSettings__SubscriptionId="YOUR_SUBSCRIPTION_ID"
+    EXPORT ApiSettings__TenantId="YOUR_TENANT_ID"
+    EXPORT ApiSettings__ClientId="YOUR_CLIENT_ID"
+    EXPORT ApiSettings__ClientSecret="CLIENT_SECRET_SP"
 ```
 
+2.2. `appsettings.json`
+Using for local developing
 
-2. Download ServicePrincipals from KeyVault to get costs info
-This SP should have access to `BillingReader`<https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access>
-
-```bash
-az keyvault secret download --file .secrets/billing_reader_sp.json --name azure-billing-reader-report --vault-name dev-keyvault-dodo
+```json
+  "ApiSettings": {
+    "SubscriptionId": "YOUR_SUBSCRIPTION_ID", 
+    "TenantId": "YOUR_TENANT_ID", 
+    "ClientId": "YOUR_CLIENT_ID", 
+    "ClientSecret": "CLIENT_SECRET_SP"
+  },
 ```
 
 3. Install dotnet SDK

@@ -14,33 +14,15 @@ using Newtonsoft.Json;
 
 namespace AzureBillingExporter
 {
-    public class ApiSettings
-    {
-        public string SubsriptionId { get; set; }
-        public string TenantId  { get; set; }
-        public string ClientId  { get; set; }
-        public string ClientSecret  { get; set; }
-    }
-
-    public class AzureAdResult
-    {
-        public string access_token { get; set; }
-    }
-
     public class AzureRestReader
     {
         private ApiSettings ApiSettings { get; }
 
         private string BearerToken {get;}
 
-        public AzureRestReader()
+        public AzureRestReader(ApiSettings apiSettings)
         {
-            var secretFilePath = ".secrets/billing_reader_sp.json";
-            using var r = new StreamReader(secretFilePath);
-            var json = r.ReadToEnd();
-            var settings = JsonConvert.DeserializeObject<ApiSettings>(json);
-
-            ApiSettings = settings;
+            ApiSettings = apiSettings;
             BearerToken = GetBearerToken();
         }
 
@@ -136,7 +118,7 @@ namespace AzureBillingExporter
         private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, [EnumeratorCancellation] CancellationToken cancel)
         {
             var azureManagementUrl =
-                $"https://management.azure.com/subscriptions/{ApiSettings.SubsriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
+                $"https://management.azure.com/subscriptions/{ApiSettings.SubscriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
 
             using var httpClient = new HttpClient();
 

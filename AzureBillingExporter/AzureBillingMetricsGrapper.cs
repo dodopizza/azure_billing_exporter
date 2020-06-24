@@ -22,19 +22,23 @@ namespace AzureBillingExporter
 
         private static 
             CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
-        
+
+        private AzureRestReader AzureRestApiClient;
         static AzureBillingMetricsGrapper()
         {
             CustomCollectorConfiguration.ReadCustomCollectorConfig();
         }
         
+        public AzureBillingMetricsGrapper(AzureRestReader azureRestReader)
+        {
+            AzureRestApiClient = azureRestReader;
+        }
+        
         public async Task DownloadFromApi(CancellationToken cancel)
         {
-            var restReader = new AzureRestReader();
-            
             //    Daily, monthly costs
-            var dailyCosts = await  restReader.GetDailyData(cancel);
-            var monthlyCosts = await  restReader.GetMonthlyData(cancel);
+            var dailyCosts = await  AzureRestApiClient.GetDailyData(cancel);
+            var monthlyCosts = await  AzureRestApiClient.GetMonthlyData(cancel);
 
             await foreach(var dayData in dailyCosts.WithCancellation(cancel))
             {
@@ -57,7 +61,7 @@ namespace AzureBillingExporter
             foreach (var (key, value) in CustomCollectorConfiguration.CustomGaugeMetrics)
             {
                 await foreach (var customData in
-                    (await restReader.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
+                    (await AzureRestApiClient.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
                 {
                     CustomCollectorConfiguration.SetValues(key, customData);
                 }
