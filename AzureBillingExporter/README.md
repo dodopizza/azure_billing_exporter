@@ -35,6 +35,52 @@ curl http://localhost:5000/metrics
 
 | *Metrics Name*  | *Description* |
 |---|---|
-| `azure_billing_daily_today`  | Today all costs |
-| `azure_billing_daily_yesterday`  | Yesterday all costs |
+| `azure_billing_daily_today`  | Today all costs !!! Cost data could delay in 12-48 hours !!! |
+| `azure_billing_daily_yesterday`  | Yesterday all costs !!! Cost data could delay in 12-48 hours !!! |
 | `azure_billing_daily_before_yesterday`  | Day before yesterday all costs |
+| `azure_billing_monthly`  | Costs by current month |
+
+# Custom Metrics
+
+DateTime Constants (using server datetime):
+`CurrentMonthStart` - This month start date time. For instance, '2020-06-01T00:00:00.0000000'
+`TodayEnd` - End of current date. For instance, '2020-06-22T23:59:59.0000000'
+
+# Try Azure Billing Query on sandbox
+
+Go to docs:
+<https://docs.microsoft.com/en-us/rest/api/cost-management/query/usage>
+
+Click `Try It`
+
+Content-type: application/json
+Scope: `subscriptions/YOUR_SUBSCRIPTION_ID`
+Api version: `2019-10-01`
+
+Body:
+
+```json
+{
+  "type": "ActualCost",
+  "dataSet": {
+    "granularity": "Daily",
+    "aggregation": {
+      "totalCost": {
+        "name": "PreTaxCost",
+        "function": "Sum"
+      }
+    },
+    "sorting": [
+      {
+        "direction": "ascending",
+        "name": "UsageDate"
+      }
+    ]
+  },
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "2020-06-24T00:00:00+00:00",
+    "to": "2020-06-24T23:59:59+00:00"
+  }
+}
+```
