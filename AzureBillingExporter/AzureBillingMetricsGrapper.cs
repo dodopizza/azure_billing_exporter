@@ -23,15 +23,15 @@ namespace AzureBillingExporter
         private static 
             CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
 
-        private AzureRestReader AzureRestApiClient;
+        private AzureRestApiClient AzureRestApiClient;
         static AzureBillingMetricsGrapper()
         {
             CustomCollectorConfiguration.ReadCustomCollectorConfig();
         }
         
-        public AzureBillingMetricsGrapper(AzureRestReader azureRestReader)
+        public AzureBillingMetricsGrapper(AzureRestApiClient azureRestApiClient)
         {
-            AzureRestApiClient = azureRestReader;
+            AzureRestApiClient = azureRestApiClient;
         }
         
         public async Task DownloadFromApi(CancellationToken cancel)

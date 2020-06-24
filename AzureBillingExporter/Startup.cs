@@ -23,7 +23,7 @@ namespace AzureBillingExporter
         {
             services.Configure<ApiSettings>(Configuration.GetSection("ApiSettings"));
             services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<ApiSettings>>().Value);
-            services.AddSingleton<AzureRestReader>();
+            services.AddSingleton<AzureRestApiClient>();
             services.AddSingleton<AzureBillingMetricsGrapper>();
         }
         

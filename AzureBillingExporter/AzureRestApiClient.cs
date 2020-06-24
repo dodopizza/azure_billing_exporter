@@ -10,24 +10,29 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using DotLiquid;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace AzureBillingExporter
 {
-    public class AzureRestReader
+    public class AzureRestApiClient
     {
+        private readonly ILogger<AzureRestApiClient> _logger;
+        
         private ApiSettings ApiSettings { get; }
 
         private string BearerToken {get;}
 
-        public AzureRestReader(ApiSettings apiSettings)
+        public AzureRestApiClient(ApiSettings apiSettings, ILogger<AzureRestApiClient> logger)
         {
+            _logger = logger;
             ApiSettings = apiSettings;
             BearerToken = GetBearerToken();
         }
 
         private string GetBearerToken()
         {
+            _logger.LogTrace("Into GetBearerToken");
             var azureAdUrl = $"https://login.microsoftonline.com/{ApiSettings.TenantId}/oauth2/token";
 
             var resourceEncoded = HttpUtility.UrlEncode("https://management.azure.com");
@@ -35,6 +40,7 @@ namespace AzureBillingExporter
             var bodyStr =
                 $"grant_type=client_credentials&client_id={ApiSettings.ClientId}&client_secret={clientSecretEncoded}&resource={resourceEncoded}";
 
+            _logger.LogTrace($"Bearer request bodyStr", bodyStr);
             var handler = new HttpClientHandler
             {
                 AllowAutoRedirect = false
@@ -47,7 +53,9 @@ namespace AzureBillingExporter
                     Encoding.UTF8, 
                     "application/x-www-form-urlencoded")).Result;
 
-            var result = JsonConvert.DeserializeObject<AzureAdResult>(response.Content.ReadAsStringAsync().Result); 
+            var responseContent = response.Content.ReadAsStringAsync().Result;
+            _logger.LogTrace($"Bearer response content {responseContent}");
+            var result = JsonConvert.DeserializeObject<AzureAdResult>(responseContent); 
 
             return result.access_token;
         }
@@ -122,6 +130,7 @@ namespace AzureBillingExporter
 
             using var httpClient = new HttpClient();
 
+            _logger.LogTrace($"Billing query {billingQuery}");
             var request = new HttpRequestMessage
             {
                 RequestUri = new Uri(azureManagementUrl),
@@ -137,7 +146,9 @@ namespace AzureBillingExporter
 
             var response = await httpClient.SendAsync(request, cancel);
 
-            dynamic json = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
+            var responseContent = await response.Content.ReadAsStringAsync();
+            _logger.LogTrace($"Billing query response result {responseContent}");
+            dynamic json = JsonConvert.DeserializeObject(responseContent);
             
             foreach (var row in json.properties.rows)
             {
