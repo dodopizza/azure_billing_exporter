@@ -1,7 +1,7 @@
 # How to run locally
 
 1. Create ServicePrincipal
-
+This SP should have access as [`BillingReader`]<https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access>
 
 2. Set configuration
 
@@ -123,4 +123,21 @@ Body:
     "to": "2020-06-24T23:59:59+00:00"
   }
 }
+```
+
+
+# Notice
+
+Request duration measuring for exporter:
+```
+▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
+Total: 19.220319s
+
+~
+▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
+Total: 17.939426s
+
+~
+▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
+Total: 18.603152s
 ```
