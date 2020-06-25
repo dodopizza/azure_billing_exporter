@@ -78,21 +78,17 @@ namespace AzureBillingExporter
             return ExecuteBillingQuery(billingQuery, cancel);
         }
         
-        public async Task<CostResultRows> GetMonthlyData(CancellationToken cancel)
+        public async Task<IAsyncEnumerable<CostResultRows>> GetMonthlyData(CancellationToken cancel)
         {
             var dateTimeNow = DateTime.Now;
             
             var dateStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            dateStart = dateStart.AddMonths(-2);
             var dateEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             var granularity = "Monthly";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
-            await foreach (var monthData in ExecuteBillingQuery(billingQuery, cancel).WithCancellation(cancel))
-            {
-                return monthData;
-            }
-
-            return null;
+            return ExecuteBillingQuery(billingQuery, cancel);
         }
 
         private async Task<string> GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity = "None", string templateFile = "./queries/get_daily_or_monthly_costs.json")
@@ -110,6 +106,9 @@ namespace AzureBillingExporter
             
             var yesterdayStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
             yesterdayStart = yesterdayStart.AddDays(-1);
+            
+            var weekAgo = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
+            weekAgo = weekAgo.AddDays(-7);
 
             return template.Render(Hash.FromAnonymousObject(new
             {
@@ -119,6 +118,7 @@ namespace AzureBillingExporter
                 PrevMonthStart = prevMonthStart.ToString("o", CultureInfo.InvariantCulture),
                 TodayEnd = todayEnd.ToString("o", CultureInfo.InvariantCulture),
                 YesterdayStart = yesterdayStart.ToString("o", CultureInfo.InvariantCulture),
+                WeekAgo = weekAgo.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
             }));
         }

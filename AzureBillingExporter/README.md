@@ -14,6 +14,15 @@ This SP should have access as [`BillingReader`]<https://docs.microsoft.com/en-us
     EXPORT ApiSettings__ClientSecret="CLIENT_SECRET_SP"
 ```
 
+For trace all billing query and response set log level to trace info `appsettings.Development.json`
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Trace",   
+```
+
 2.2. `appsettings.json`
 Using for local developing
 
@@ -58,7 +67,8 @@ DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 `CurrentMonthStart` - This month start date time. For instance '2020-06-01T00:00:00.0000000'
 `PrevMonthStart` - Previous month start date. For instance '2020-05-01T00:00:00.0000000'
 `TodayEnd` - End of current date. For instance '2020-06-22T23:59:59.0000000'
-`YesterdayStart` - Yesterday start date. Form instance '2020-06-22T00:00:00.0000000'
+`YesterdayStart` - Yesterday start date. For instance '2020-06-22T00:00:00.0000000'
+`WeekAgo` - This day of week but week ago, start of the day. For instance '2020-06-16T00:00:00.0000000'
 
 All this constants you can use into billing query json files:
 ```json
@@ -83,6 +93,7 @@ metrics:
       # Arbitrary key/value pair
       company: dodo
     value: PreTaxCost
+    replace_labels_to_enum: true  # replace `05/01/2020 00:00:00` to `last_month`, `UsageDate="20200624"` to `yesterday`. Default false
     query_file: './custom_queries/azure_billing_by_resource_group.json'
 ```
 

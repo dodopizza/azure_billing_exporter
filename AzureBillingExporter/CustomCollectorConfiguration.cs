@@ -31,6 +31,9 @@ namespace AzureBillingExporter
         
         public int? Limit { get; set; }
         
+        [YamlMember(Alias = "replace_labels_to_enum", ApplyNamingConventions = false)]
+        public bool ReplaceLabelsToEnum { get; set; }
+        
         [YamlMember(Alias = "query_file", ApplyNamingConventions = false)]
         public string QueryFilePath { get; set; }
         
@@ -97,6 +100,11 @@ namespace AzureBillingExporter
             foreach (var keyLabel in key.KeyLabels)
             {
                 var dataColumnByKeyLabel = customData.GetByColumnName(keyLabel);
+
+                if (key.ReplaceLabelsToEnum)
+                {
+                    dataColumnByKeyLabel = DateEnumHelper.ReplaceDateValueToEnums(dataColumnByKeyLabel);
+                }
                 labelValues.Add(dataColumnByKeyLabel);
             }
             

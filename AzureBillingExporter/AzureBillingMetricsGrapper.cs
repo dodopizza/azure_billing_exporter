@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Prometheus;
@@ -9,16 +7,23 @@ namespace AzureBillingExporter
 {
     public class AzureBillingMetricsGrapper
     {
-        private static readonly Gauge DailyTodayCosts =
-            Metrics.CreateGauge("azure_billing_daily_today", "Yesterday costs for subscription");
-        private static readonly Gauge DailyYesterdayCosts =
-            Metrics.CreateGauge("azure_billing_daily_yesterday", "Yesterday costs for subscription");
-        private static readonly Gauge DailyBeforeYesterdayCosts =
-            Metrics.CreateGauge("azure_billing_daily_before_yesterday", "Yesterday costs for subscription");
-        
+        private static readonly Gauge DailyCosts =
+            Metrics.CreateGauge(
+                "azure_billing_daily", 
+                "Daily cost by today, yesterday and day before yesterday",
+                    new GaugeConfiguration
+                    {
+                        LabelNames = new [] {"UsageDate", "DateEnum"}
+                    });
         
         private static readonly Gauge MonthlyCosts =
-            Metrics.CreateGauge("azure_billing_monthly", "This month costs");
+            Metrics.CreateGauge(
+                "azure_billing_monthly", 
+                "This month costs",
+                    new GaugeConfiguration
+                    {
+                        LabelNames = new [] {"BillingMonth", "DateEnum"}
+                    });
 
         private static 
             CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
@@ -37,26 +42,23 @@ namespace AzureBillingExporter
         public async Task DownloadFromApi(CancellationToken cancel)
         {
             //    Daily, monthly costs
-            var dailyCosts = await  AzureRestApiClient.GetDailyData(cancel);
-            var monthlyCosts = await  AzureRestApiClient.GetMonthlyData(cancel);
-
-            await foreach(var dayData in dailyCosts.WithCancellation(cancel))
+            await foreach(var dayData in (await  AzureRestApiClient.GetDailyData(cancel)).WithCancellation(cancel))
             {
-                if (dayData.Date == DateTime.Now.ToString("yyyyMMdd"))
-                {
-                    DailyTodayCosts.Set(dayData.Cost);
-                }
-                if (dayData.Date == DateTime.Now.AddDays(-1).ToString("yyyyMMdd"))
-                {
-                    DailyYesterdayCosts.Set(dayData.Cost);
-                }
-                if (dayData.Date == DateTime.Now.AddDays(-2).ToString("yyyyMMdd"))
-                {
-                    DailyBeforeYesterdayCosts.Set(dayData.Cost);
-                }
+                var dayEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("UsageDate"));
+            
+                DailyCosts
+                    .WithLabels(dayData.GetByColumnName("UsageDate"),dayEnum)
+                    .Set(dayData.Cost);
             }
 
-            MonthlyCosts.Set(monthlyCosts.Cost);
+            await foreach(var dayData in (await  AzureRestApiClient.GetMonthlyData(cancel)).WithCancellation(cancel))
+            {
+                var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("BillingMonth"));
+            
+                MonthlyCosts
+                    .WithLabels(dayData.GetByColumnName("BillingMonth"), monthEnum)
+                    .Set(dayData.Cost);
+            }
 
             foreach (var (key, value) in CustomCollectorConfiguration.CustomGaugeMetrics)
             {
