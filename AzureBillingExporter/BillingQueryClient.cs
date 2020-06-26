@@ -2,41 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AzureBillingExporter.AzureApiAccessToken;
+using AzureBillingExporter.AzureApi;
 using DotLiquid;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace AzureBillingExporter
 {
-    public class AzureRestApiClient
+    public class BillingQueryClient
     {
-        private readonly IAccessTokenProvider _accessTokenProvider;
-        private readonly ILogger<AzureRestApiClient> _logger;
-        
-        private ApiSettings ApiSettings { get; }
+        private readonly AzureCostManagementClient _costManagementClient;
+        private readonly ILogger<BillingQueryClient> _logger;
 
-        public AzureRestApiClient(
-            ApiSettings apiSettings,
-            IAccessTokenProvider accessTokenProvider, 
-            ILogger<AzureRestApiClient> logger)
+        public BillingQueryClient(
+            AzureCostManagementClient costManagementClient, 
+            ILogger<BillingQueryClient> logger)
         {
-            _accessTokenProvider = accessTokenProvider;
+            _costManagementClient = costManagementClient;
             _logger = logger;
-            ApiSettings = apiSettings;
         }
 
         public async Task<IAsyncEnumerable<CostResultRows>> GetCustomData(CancellationToken cancel, string templateFileName)
         {
             var billingQuery = await GenerateBillingQuery(DateTime.MaxValue, DateTime.MaxValue, "None", templateFileName);
-            return ExecuteBillingQuery(billingQuery, cancel);
+            return _costManagementClient.ExecuteBillingQuery(billingQuery, cancel, this);
         }
         
         public async Task<IAsyncEnumerable<CostResultRows>> GetDailyData(CancellationToken cancel)
@@ -48,7 +38,7 @@ namespace AzureBillingExporter
             var granularity = "Daily";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
-            return ExecuteBillingQuery(billingQuery, cancel);
+            return _costManagementClient.ExecuteBillingQuery(billingQuery, cancel, this);
         }
         
         public async Task<IAsyncEnumerable<CostResultRows>> GetMonthlyData(CancellationToken cancel)
@@ -61,7 +51,7 @@ namespace AzureBillingExporter
             var granularity = "Monthly";
 
             var billingQuery = await GenerateBillingQuery(dateStart, dateEnd, granularity);
-            return ExecuteBillingQuery(billingQuery, cancel);
+            return _costManagementClient.ExecuteBillingQuery(billingQuery, cancel, this);
         }
 
         private async Task<string> GenerateBillingQuery(DateTime dateStart, DateTime dateEnd, string granularity = "None", string templateFile = "./queries/get_daily_or_monthly_costs.json")
@@ -94,46 +84,6 @@ namespace AzureBillingExporter
                 WeekAgo = weekAgo.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
             }));
-        }
-
-        private async IAsyncEnumerable<CostResultRows> ExecuteBillingQuery(string billingQuery, [EnumeratorCancellation] CancellationToken cancel)
-        {
-            var azureManagementUrl =
-                $"https://management.azure.com/subscriptions/{ApiSettings.SubscriptionId}/providers/Microsoft.CostManagement/query?api-version=2019-10-01";
-
-            using var httpClient = new HttpClient();
-
-            _logger.LogTrace($"Billing query {billingQuery}");
-            var request = new HttpRequestMessage
-            {
-                RequestUri = new Uri(azureManagementUrl),
-                Method = HttpMethod.Post,
-                Content = new StringContent(
-                    billingQuery,
-                    Encoding.UTF8,
-                    "application/json")
-            };
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            
-            var accessToken = _accessTokenProvider.GetAccessToken();
-            request.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await httpClient.SendAsync(request, cancel);
-
-            if (response.StatusCode != HttpStatusCode.OK)
-            {
-                throw new Exception($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
-            }
-            
-            var responseContent = await response.Content.ReadAsStringAsync();
-            _logger.LogTrace($"Billing query response result {responseContent}");
-            dynamic json = JsonConvert.DeserializeObject(responseContent);
-
-            foreach (var row in json.properties.rows)
-            {
-                yield return CostResultRows.Cast(json.properties.columns, row);
-            }
         }
     }
 }

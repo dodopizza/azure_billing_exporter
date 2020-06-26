@@ -1,4 +1,4 @@
-namespace AzureBillingExporter.AzureApiAccessToken
+namespace AzureBillingExporter.AzureApi
 {
     public class AccessTokenProvider : IAccessTokenProvider
     {

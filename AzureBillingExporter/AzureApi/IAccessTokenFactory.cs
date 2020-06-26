@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AzureBillingExporter.AzureApiAccessToken
+namespace AzureBillingExporter.AzureApi
 {
     public interface IAccessTokenFactory
     {

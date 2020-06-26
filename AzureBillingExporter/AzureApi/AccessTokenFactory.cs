@@ -6,16 +6,16 @@ using System.Web;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace AzureBillingExporter.AzureApiAccessToken
+namespace AzureBillingExporter.AzureApi
 {
     public class AccessTokenFactory: IAccessTokenFactory
     {
         private readonly ApiSettings _apiSettings;
-        private readonly ILogger<AzureRestApiClient> _logger;
+        private readonly ILogger<BillingQueryClient> _logger;
 
         public AccessTokenFactory(
             ApiSettings apiSettings, 
-            ILogger<AzureRestApiClient> logger)
+            ILogger<BillingQueryClient> logger)
         {
             _apiSettings = apiSettings;
             _logger = logger;

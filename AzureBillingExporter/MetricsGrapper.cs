@@ -27,21 +27,21 @@ namespace AzureBillingExporter
         private static 
             CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
 
-        private AzureRestApiClient AzureRestApiClient;
+        private BillingQueryClient _billingQueryClient;
         static AzureBillingMetricsGrapper()
         {
             CustomCollectorConfiguration.ReadCustomCollectorConfig();
         }
         
-        public AzureBillingMetricsGrapper(AzureRestApiClient azureRestApiClient)
+        public AzureBillingMetricsGrapper(BillingQueryClient billingQueryClient)
         {
-            AzureRestApiClient = azureRestApiClient;
+            _billingQueryClient = billingQueryClient;
         }
         
         public async Task DownloadFromApi(CancellationToken cancel)
         {
             //    Daily, monthly costs
-            await foreach(var dayData in (await  AzureRestApiClient.GetDailyData(cancel)).WithCancellation(cancel))
+            await foreach(var dayData in (await  _billingQueryClient.GetDailyData(cancel)).WithCancellation(cancel))
             {
                 var dayEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("UsageDate"));
             
@@ -50,7 +50,7 @@ namespace AzureBillingExporter
                     .Set(dayData.Cost);
             }
 
-            await foreach(var dayData in (await  AzureRestApiClient.GetMonthlyData(cancel)).WithCancellation(cancel))
+            await foreach(var dayData in (await  _billingQueryClient.GetMonthlyData(cancel)).WithCancellation(cancel))
             {
                 var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("BillingMonth"));
             
@@ -59,10 +59,10 @@ namespace AzureBillingExporter
                     .Set(dayData.Cost);
             }
 
-            foreach (var (key, value) in CustomCollectorConfiguration.CustomGaugeMetrics)
+            foreach (var (key, _) in CustomCollectorConfiguration.CustomGaugeMetrics)
             {
                 await foreach (var customData in
-                    (await AzureRestApiClient.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
+                    (await _billingQueryClient.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
                 {
                     CustomCollectorConfiguration.SetValues(key, customData);
                 }

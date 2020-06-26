@@ -1,4 +1,4 @@
-namespace AzureBillingExporter
+namespace AzureBillingExporter.AzureApi
 {
     public class AzureAdResult
     {

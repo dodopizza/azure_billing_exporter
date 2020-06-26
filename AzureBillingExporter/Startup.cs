@@ -1,5 +1,5 @@
 using System;
-using AzureBillingExporter.AzureApiAccessToken;
+using AzureBillingExporter.AzureApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +26,8 @@ namespace AzureBillingExporter
         {
             services.Configure<ApiSettings>(Configuration.GetSection("ApiSettings"));
             services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<ApiSettings>>().Value);
-            services.AddSingleton<AzureRestApiClient>();
+            services.AddSingleton<BillingQueryClient>();
+            services.AddSingleton<AzureCostManagementClient>();
             services.AddSingleton<AzureBillingMetricsGrapper>();
             
             

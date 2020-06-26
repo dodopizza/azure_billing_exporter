@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace AzureBillingExporter.AzureApiAccessToken
+namespace AzureBillingExporter.AzureApi
 {
     public class BackgroundAccessTokenProviderHostedService : IHostedService
     {
