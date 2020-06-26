@@ -1,0 +1,1 @@
+docker build -t azure_billing_exporter .
