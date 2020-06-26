@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web;
+using AzureBillingExporter.AzureApiAccessToken;
 using DotLiquid;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -17,47 +18,19 @@ namespace AzureBillingExporter
 {
     public class AzureRestApiClient
     {
+        private readonly IAccessTokenProvider _accessTokenProvider;
         private readonly ILogger<AzureRestApiClient> _logger;
         
         private ApiSettings ApiSettings { get; }
 
-        private string BearerToken {get;}
-
-        public AzureRestApiClient(ApiSettings apiSettings, ILogger<AzureRestApiClient> logger)
+        public AzureRestApiClient(
+            ApiSettings apiSettings,
+            IAccessTokenProvider accessTokenProvider, 
+            ILogger<AzureRestApiClient> logger)
         {
+            _accessTokenProvider = accessTokenProvider;
             _logger = logger;
             ApiSettings = apiSettings;
-            BearerToken = GetBearerToken();
-        }
-
-        private string GetBearerToken()
-        {
-            _logger.LogTrace("Into GetBearerToken");
-            var azureAdUrl = $"https://login.microsoftonline.com/{ApiSettings.TenantId}/oauth2/token";
-
-            var resourceEncoded = HttpUtility.UrlEncode("https://management.azure.com");
-            var clientSecretEncoded = HttpUtility.UrlEncode(ApiSettings.ClientSecret);
-            var bodyStr =
-                $"grant_type=client_credentials&client_id={ApiSettings.ClientId}&client_secret={clientSecretEncoded}&resource={resourceEncoded}";
-
-            _logger.LogTrace($"Bearer request bodyStr", bodyStr);
-            var handler = new HttpClientHandler
-            {
-                AllowAutoRedirect = false
-            };
-            using var httpClient = new HttpClient(handler);
-            
-            var response = httpClient.PostAsync(azureAdUrl, 
-                new StringContent(
-                    bodyStr, 
-                    Encoding.UTF8, 
-                    "application/x-www-form-urlencoded")).Result;
-
-            var responseContent = response.Content.ReadAsStringAsync().Result;
-            _logger.LogTrace($"Bearer response content {responseContent}");
-            var result = JsonConvert.DeserializeObject<AzureAdResult>(responseContent); 
-
-            return result.access_token;
         }
 
         public async Task<IAsyncEnumerable<CostResultRows>> GetCustomData(CancellationToken cancel, string templateFileName)
@@ -141,15 +114,22 @@ namespace AzureBillingExporter
                     "application/json")
             };
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            
+            var accessToken = _accessTokenProvider.GetAccessToken();
             request.Headers.Authorization =
-                new AuthenticationHeaderValue("Bearer", BearerToken);
+                new AuthenticationHeaderValue("Bearer", accessToken);
 
             var response = await httpClient.SendAsync(request, cancel);
 
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new Exception($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+            }
+            
             var responseContent = await response.Content.ReadAsStringAsync();
             _logger.LogTrace($"Billing query response result {responseContent}");
             dynamic json = JsonConvert.DeserializeObject(responseContent);
-            
+
             foreach (var row in json.properties.rows)
             {
                 yield return CostResultRows.Cast(json.properties.columns, row);

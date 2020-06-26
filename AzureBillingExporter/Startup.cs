@@ -1,8 +1,11 @@
+using System;
+using AzureBillingExporter.AzureApiAccessToken;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Prometheus;
 
@@ -25,6 +28,23 @@ namespace AzureBillingExporter
             services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<ApiSettings>>().Value);
             services.AddSingleton<AzureRestApiClient>();
             services.AddSingleton<AzureBillingMetricsGrapper>();
+            
+            
+            services.AddSingleton<IAccessTokenFactory, AccessTokenFactory>();
+            services.AddSingleton<IAccessTokenProvider, AccessTokenProvider>();
+            
+            services.AddHostedService(resolver =>
+            {
+                var accessTokenProvider = resolver.GetRequiredService<IAccessTokenProvider>();
+                var accessTokenFactory = resolver.GetRequiredService<IAccessTokenFactory>();
+                var logger = resolver.GetRequiredService<ILogger<BackgroundAccessTokenProviderHostedService>>();
+                return new BackgroundAccessTokenProviderHostedService(
+                    accessTokenProvider,
+                    accessTokenFactory,
+                    TimeSpan.FromHours(1),
+                    logger,
+                    TimeSpan.FromSeconds(10));
+            });
         }
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
