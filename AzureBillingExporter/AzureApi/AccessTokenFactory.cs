@@ -22,7 +22,7 @@ namespace AzureBillingExporter.AzureApi
         }
         public async Task<string> CreateAsync(CancellationToken cancellationToken = default)
         {
-            _logger.LogTrace("Into GetBearerToken");
+            _logger.LogInformation("Into GetBearerToken");
             var azureAdUrl = $"https://login.microsoftonline.com/{_apiSettings.TenantId}/oauth2/token";
 
             var resourceEncoded = HttpUtility.UrlEncode("https://management.azure.com");
@@ -41,7 +41,7 @@ namespace AzureBillingExporter.AzureApi
                 new StringContent(
                     bodyStr, 
                     Encoding.UTF8, 
-                    "application/x-www-form-urlencoded")).Result;
+                    "application/x-www-form-urlencoded"), cancellationToken).Result;
 
             var responseContent = await response.Content.ReadAsStringAsync();
             _logger.LogTrace($"Bearer response content {responseContent}");

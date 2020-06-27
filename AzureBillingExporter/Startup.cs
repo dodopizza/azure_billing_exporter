@@ -42,7 +42,7 @@ namespace AzureBillingExporter
                 return new BackgroundAccessTokenProviderHostedService(
                     accessTokenProvider,
                     accessTokenFactory,
-                    TimeSpan.FromHours(1),
+                    TimeSpan.FromMinutes(50),
                     logger,
                     TimeSpan.FromSeconds(10));
             });
