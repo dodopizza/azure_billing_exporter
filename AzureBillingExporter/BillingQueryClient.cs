@@ -62,8 +62,13 @@ namespace AzureBillingExporter
             var template = Template.Parse(templateQuery);
             
             var currentMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            
             var prevMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
             prevMonthStart = prevMonthStart.AddMonths(-1);
+
+            var beforePrevMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            beforePrevMonthStart = beforePrevMonthStart.AddMonths(-2);
+
             
             var todayEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             
@@ -79,6 +84,7 @@ namespace AzureBillingExporter
                 DayEnd = dateEnd.ToString("o", CultureInfo.InvariantCulture),
                 CurrentMonthStart = currentMonthStart.ToString("o", CultureInfo.InvariantCulture),
                 PrevMonthStart = prevMonthStart.ToString("o", CultureInfo.InvariantCulture),
+                BeforePrevMonthStart = beforePrevMonthStart.ToString("o", CultureInfo.InvariantCulture),
                 TodayEnd = todayEnd.ToString("o", CultureInfo.InvariantCulture),
                 YesterdayStart = yesterdayStart.ToString("o", CultureInfo.InvariantCulture),
                 WeekAgo = weekAgo.ToString("o", CultureInfo.InvariantCulture),

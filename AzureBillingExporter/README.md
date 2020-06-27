@@ -66,6 +66,7 @@ curl http://localhost:5000/metrics
 DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 `CurrentMonthStart` - This month start date time. For instance '2020-06-01T00:00:00.0000000'
 `PrevMonthStart` - Previous month start date. For instance '2020-05-01T00:00:00.0000000'
+`BeforePrevMonthStart` - Before previous month. For instance '2020-04-01T00:00:00.0000000'
 `TodayEnd` - End of current date. For instance '2020-06-22T23:59:59.0000000'
 `YesterdayStart` - Yesterday start date. For instance '2020-06-22T00:00:00.0000000'
 `WeekAgo` - This day of week but week ago, start of the day. For instance '2020-06-16T00:00:00.0000000'
