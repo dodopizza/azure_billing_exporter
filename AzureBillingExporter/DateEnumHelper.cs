@@ -5,25 +5,24 @@ internal static class DateEnumHelper
 {
     public static string ReplaceDateValueToEnums(string dataColumnByKeyLabel)
     {
-            
         var now = DateTime.Now;
 
         var currentMonthStart = new DateTime(now.Year, now.Month, 1);
-        if (dataColumnByKeyLabel == currentMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
+        if (dataColumnByKeyLabel == currentMonthStart.ToString("yyyy-MM-01T00:00:00", CultureInfo.InvariantCulture))
         {
             return "current_month";
         }
             
         var previousMonthStart = new DateTime(now.Year, now.Month, 1);
         previousMonthStart = previousMonthStart.AddMonths(-1);
-        if (dataColumnByKeyLabel == previousMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
+        if (dataColumnByKeyLabel == previousMonthStart.ToString("yyyy-MM-01T00:00:00", CultureInfo.InvariantCulture))
         {
             return "previous_month";
         }
         
         var beforePreviousMonthStart = new DateTime(now.Year, now.Month, 1);
         beforePreviousMonthStart = beforePreviousMonthStart.AddMonths(-2);
-        if (dataColumnByKeyLabel == beforePreviousMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
+        if (dataColumnByKeyLabel == beforePreviousMonthStart.ToString("yyyy-MM-01T00:00:00", CultureInfo.InvariantCulture))
         {
             return "before_previous_month";
         }
