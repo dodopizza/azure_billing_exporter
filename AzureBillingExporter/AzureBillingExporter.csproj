@@ -15,4 +15,22 @@
       <PackageReference Include="YamlDotNet" Version="8.1.2" />
     </ItemGroup>
 
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="out\web.config" />
+      <_ContentIncludedByDefault Remove="out\appsettings.Development.json" />
+      <_ContentIncludedByDefault Remove="out\appsettings.json" />
+      <_ContentIncludedByDefault Remove="out\AzureBillingExporter.deps.json" />
+      <_ContentIncludedByDefault Remove="out\AzureBillingExporter.runtimeconfig.json" />
+      <_ContentIncludedByDefault Remove="out\custom_queries\azure_billing_by_resource_group.json" />
+      <_ContentIncludedByDefault Remove="out\custom_queries\azure_billing_by_rg_name.json" />
+      <_ContentIncludedByDefault Remove="out\custom_queries\azure_billing_by_tag_terraform.json" />
+      <_ContentIncludedByDefault Remove="out\custom_queries\azure_billing_monthly_logs.json" />
+      <_ContentIncludedByDefault Remove="out\custom_queries\azure_billing_weeks_by_days.json" />
+      <_ContentIncludedByDefault Remove="out\queries\get_daily_or_monthly_costs.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="out" />
+    </ItemGroup>
+
 </Project>
