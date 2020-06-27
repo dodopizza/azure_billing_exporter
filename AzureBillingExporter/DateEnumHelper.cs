@@ -14,11 +14,18 @@ internal static class DateEnumHelper
             return "current_month";
         }
             
-        var lastMonthStart = new DateTime(now.Year, now.Month, 1);
-        lastMonthStart = lastMonthStart.AddMonths(-1);
-        if (dataColumnByKeyLabel == lastMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
+        var previousMonthStart = new DateTime(now.Year, now.Month, 1);
+        previousMonthStart = previousMonthStart.AddMonths(-1);
+        if (dataColumnByKeyLabel == previousMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
         {
-            return "last_month";
+            return "previous_month";
+        }
+        
+        var beforePreviousMonthStart = new DateTime(now.Year, now.Month, 1);
+        beforePreviousMonthStart = beforePreviousMonthStart.AddMonths(-2);
+        if (dataColumnByKeyLabel == beforePreviousMonthStart.ToString("MM/01/yyyy 00:00:00", CultureInfo.InvariantCulture))
+        {
+            return "before_previous_month";
         }
 
         // "20200624" -> "today"
