@@ -68,7 +68,6 @@ namespace AzureBillingExporter
 
             var beforePrevMonthStart = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
             beforePrevMonthStart = beforePrevMonthStart.AddMonths(-2);
-
             
             var todayEnd = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day, 23, 59, 59);
             
@@ -77,6 +76,11 @@ namespace AzureBillingExporter
             
             var weekAgo = new DateTime(dateTimeNow.Year, dateTimeNow.Month, dateTimeNow.Day);
             weekAgo = weekAgo.AddDays(-7);
+            
+            //YearAgo
+            var yearAgo = new DateTime(dateTimeNow.Year, dateTimeNow.Month, 1);
+            yearAgo = yearAgo.AddYears(-1);
+            yearAgo = yearAgo.AddMonths(1);
 
             return template.Render(Hash.FromAnonymousObject(new
             {
@@ -88,6 +92,7 @@ namespace AzureBillingExporter
                 TodayEnd = todayEnd.ToString("o", CultureInfo.InvariantCulture),
                 YesterdayStart = yesterdayStart.ToString("o", CultureInfo.InvariantCulture),
                 WeekAgo = weekAgo.ToString("o", CultureInfo.InvariantCulture),
+                YearAgo = yearAgo.ToString("o", CultureInfo.InvariantCulture),
                 Granularity = granularity
             }));
         }
