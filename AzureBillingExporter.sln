@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureBillingExporter", "AzureBillingExporter\AzureBillingExporter.csproj", "{E41DA649-9611-4BE8-96C8-FAA3BA49BAD2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureBillingExporter", "AzureBillingExporter.csproj", "{E41DA649-9611-4BE8-96C8-FAA3BA49BAD2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
