@@ -1,7 +1,7 @@
 # How to run locally
 
 1. Create ServicePrincipal
-This SP should have access as Billing reader role [see Manege billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
+This SP should have access as Billing reader role [see Manage billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
 
 2. Set configuration
 
