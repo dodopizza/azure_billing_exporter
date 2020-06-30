@@ -1,7 +1,7 @@
 # How to run locally
 
 1. Create ServicePrincipal
-This SP should have access as [BillingReader](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
+This SP should have access as Billing reader role [see Manege billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
 
 2. Set configuration
 
@@ -14,15 +14,6 @@ This SP should have access as [BillingReader](https://docs.microsoft.com/en-us/a
     EXPORT ApiSettings__ClientSecret="CLIENT_SECRET_SP"
 ```
 
-For trace all billing query and response set log level to trace info `appsettings.Development.json`
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Trace",   
-```
-
 2.2. `appsettings.json`
 Using for local developing
 
@@ -33,6 +24,17 @@ Using for local developing
     "ClientId": "YOUR_CLIENT_ID", 
     "ClientSecret": "CLIENT_SECRET_SP"
   },
+```
+
+2.3 Tracing logs
+
+For trace all billing query and response set log level to trace info `appsettings.Development.json`
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Trace",   
 ```
 
 3. Install dotnet SDK
