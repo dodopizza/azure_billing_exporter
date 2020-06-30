@@ -118,7 +118,7 @@ metrics:
 
 ## Datetime constants into query files
 
-You can use special constant into query file. For this use `{{ }}` template notation([Liquid Template Language]<https://shopify.github.io/liquid/>). 
+You can use special constant into query file. For this use `{{ }}` template notation( [Liquid Template Language]<https://shopify.github.io/liquid/>). 
 DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 
 | *Constant*  | *Description* |  *Example* |
