@@ -63,6 +63,62 @@ curl http://localhost:5000/metrics
 
 # Custom Metrics
 
+## Set custom metrics configs into `custom_collectors.yml`
+
+```yaml
+# A Prometheus metric with (optional) additional labels, value and labels populated from one query.
+metrics:
+  - metric_name: azure_billing_by_resource_group
+    type: gauge
+    help: 'Costs by resource group by current month'
+    key_labels:
+      # Populated from the `market` column of each row.
+      - ResourceGroupName
+    static_labels:
+      # Arbitrary key/value pair
+      company: dodo
+    value: PreTaxCost
+    replace_labels_to_enum: true  # replace `05/01/2020 00:00:00` to `last_month`, `UsageDate="20200624"` to `yesterday`. Default false
+    query_file: './custom_queries/azure_billing_by_resource_group.json'
+```
+
+## Query to billing api
+
+```json
+{
+  "type": "ActualCost",
+  "dataSet": {
+    "granularity": "None",
+    "aggregation": {
+      "totalCost": {
+        "name": "PreTaxCost",
+        "function": "Sum"
+      }
+    },
+    "grouping": [
+      {
+        "type": "Dimension",
+        "name": "ResourceGroupName"
+      }
+    ],
+    "sorting": [
+      {
+        "direction": "descending",
+        "name": "PreTaxCost"
+      }
+    ]
+  },
+  "timeframe": "Custom",
+  "timePeriod": {
+    "from": "{{ CurrentMonthStart }}",
+    "to": "{{ TodayEnd }}"
+  }
+}
+```
+
+## Datetime constants into query files
+
+You can use special constant into query file. For this use `{{ }}` template notation([Liquid Template Language]<https://shopify.github.io/liquid/>). 
 DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 
 | *Constant*  | *Description* |  *Example* |
@@ -83,24 +139,7 @@ All this constants you can use into billing query json files:
   }
 ```
 
-## Set custom metrics configs into `custom_collectors.yml`
 
-```yaml
-# A Prometheus metric with (optional) additional labels, value and labels populated from one query.
-metrics:
-  - metric_name: azure_billing_by_resource_group
-    type: gauge
-    help: 'Costs by resource group by current month'
-    key_labels:
-      # Populated from the `market` column of each row.
-      - ResourceGroupName
-    static_labels:
-      # Arbitrary key/value pair
-      company: dodo
-    value: PreTaxCost
-    replace_labels_to_enum: true  # replace `05/01/2020 00:00:00` to `last_month`, `UsageDate="20200624"` to `yesterday`. Default false
-    query_file: './custom_queries/azure_billing_by_resource_group.json'
-```
 
 # Try Azure Billing Query on sandbox
 
