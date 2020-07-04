@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - '*.*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    name: Build project
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.202'
+
+      - name: Run build
+        run:
+          dotnet build --configuration Release ./src/AzureBillingExporter.csproj
