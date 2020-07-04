@@ -1,6 +1,9 @@
 name: Build
 
-on: push
+on:
+  push:
+    tags-ignore:
+      - '*.*'
 
 jobs:
   build:
@@ -17,5 +20,5 @@ jobs:
           dotnet-version: '3.1.202'
 
       - name: Run build
-        run: |
+        run:
           dotnet build --configuration Release ./src/AzureBillingExporter.csproj
