@@ -1,3 +1,19 @@
+# Install
+
+## Docker images
+
+```bash
+docker run\
+        --env ApiSettings__SubscriptionId='YOUR_SUBSCRIPTION_ID'\
+        --env ApiSettings__TenantId='YOUR_TENANT_ID'\
+        --env ApiSettings__ClientId='YOUR_CLIENT_ID'\
+        --env ApiSettings__ClientSecret='CLIENT_SECRET_SP'\
+        -v /PATH_TO_REPO/custom_queries/:/app/custom_queries/\
+        -v /PATH_TO_REPO/custom_collectors.yml:/app/custom_collectors.yml\
+        -p 9301:80 azure_billing_exporter:latest
+
+```
+
 # How to run locally
 
 1. Create ServicePrincipal
