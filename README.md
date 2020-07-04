@@ -1,6 +1,7 @@
 # Azure Billing Exporter
 
 ![Build](https://github.com/dodopizza/azure_billing_exporter/workflows/Build/badge.svg?branch=master)
+[![Docker Pulls](https://img.shields.io/docker/pulls/pritchinpavel/azure_billing_exporter)](https://hub.docker.com/r/pritchinpavel/azure_billing_exporter)
 
 # Install
 
