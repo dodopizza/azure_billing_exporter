@@ -2,11 +2,12 @@ FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
 WORKDIR /app
 
 # Copy csproj and restore as distinct layers
-COPY *.csproj ./
+COPY ./src/*.csproj ./
 RUN dotnet restore
 
 # Copy everything else and build
-COPY . ./
+COPY ./src/* ./
+COPY ./src/queries/get_daily_or_monthly_costs.json ./queries/get_daily_or_monthly_costs.json
 RUN dotnet publish -c Release -o out
 
 # Build runtime image

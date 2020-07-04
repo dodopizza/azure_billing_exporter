@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,10 +16,4 @@
       <PackageReference Include="prometheus-net.AspNetCore.HealthChecks" Version="3.6.0" />
       <PackageReference Include="YamlDotNet" Version="8.1.2" />
     </ItemGroup>
-
-    <ItemGroup>
-      <_ContentIncludedByDefault Remove="custom_queries\azure_billing_by_resource_group.json" />
-      <_ContentIncludedByDefault Remove="custom_queries\azure_billing_by_tag_terraform.json" />
-    </ItemGroup>
-
 </Project>

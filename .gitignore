@@ -4,4 +4,5 @@ obj/
 .idea
 out/
 
+src/appsettings.Development.json
 /AzureBillingExporter.sln.DotSettings.user
