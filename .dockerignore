@@ -1,0 +1,6 @@
+.git
+.idea
+custom_queries/*
+custom_collectors.yml
+appsettings.Development.json
+README.md
