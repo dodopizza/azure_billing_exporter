@@ -17,9 +17,9 @@ namespace AzureBillingExporter
         {
             Configuration = configuration;
         }
-        
+
         public IConfiguration Configuration { get; }
-        
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -29,11 +29,16 @@ namespace AzureBillingExporter
             services.AddSingleton<BillingQueryClient>();
             services.AddSingleton<AzureCostManagementClient>();
             services.AddSingleton<AzureBillingMetricsGrapper>();
-            
-            
+
+            services.AddSingleton<CustomCollectorConfiguration>(serviceProvider=>
+            {
+                var customCollectorsFilePath = Configuration["CustomCollectorsFilePath"];
+                return new CustomCollectorConfiguration(customCollectorsFilePath);
+            });
+
             services.AddSingleton<IAccessTokenFactory, AccessTokenFactory>();
             services.AddSingleton<IAccessTokenProvider, AccessTokenProvider>();
-            
+
             services.AddHostedService(resolver =>
             {
                 var accessTokenProvider = resolver.GetRequiredService<IAccessTokenProvider>();
@@ -47,10 +52,10 @@ namespace AzureBillingExporter
                     TimeSpan.FromSeconds(10));
             });
         }
-        
+
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(
-            IApplicationBuilder app, 
+            IApplicationBuilder app,
             IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -59,13 +64,13 @@ namespace AzureBillingExporter
             }
 
             app.UseRouting();
-            
+
             var billingGrapper = app.ApplicationServices.GetService<AzureBillingMetricsGrapper>();
             Metrics.DefaultRegistry.AddBeforeCollectCallback(async (cancel) =>
                 {
                     await billingGrapper.DownloadFromApi(cancel);
                 });
-            
+
             // ASP.NET Core 3 or newer
             app.UseEndpoints(endpoints =>
             {

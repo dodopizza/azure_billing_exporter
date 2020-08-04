@@ -104,6 +104,12 @@ metrics:
     replace_labels_to_enum: true  # replace `05/01/2020 00:00:00` to `last_month`, `UsageDate="20200624"` to `yesterday`. Default false
     query_file: './custom_queries/azure_billing_by_resource_group.json'
 ```
+## You can set custom path to collectors.yaml file
+
+Into `appsettings.Development.json` (or env `CustomCollectorsFilePath`) set:
+```json
+  "CustomCollectorsFilePath" : "./local/custom_collectors.yml",
+```
 
 ## Query to billing api
 

@@ -17,7 +17,7 @@ namespace AzureBillingExporter
     {
         [YamlMember(Alias = "metric_name", ApplyNamingConventions = false)]
         public string MetricName { get; set; }
-        
+
         public string Type { get; set; }
         public string Help { get; set; }
 
@@ -26,32 +26,43 @@ namespace AzureBillingExporter
 
         [YamlMember(Alias = "static_labels", ApplyNamingConventions = false)]
         public Dictionary<string, string> StaticLabel { get; set; }
-        
+
         public string Value { get; set; }
-        
+
         public int? Limit { get; set; }
-        
-        [YamlMember(Alias = "replace_labels_to_enum", ApplyNamingConventions = false)]
-        public bool ReplaceLabelsToEnum { get; set; }
-        
+
+        [YamlMember(Alias = "replace_date_labels_to_enum", ApplyNamingConventions = false)]
+        public bool ReplaceDateLabelsToEnum { get; set; }
+
         [YamlMember(Alias = "query_file", ApplyNamingConventions = false)]
         public string QueryFilePath { get; set; }
-        
+
     }
-    
+
     public class CustomCollectorConfiguration
     {
         public readonly Dictionary<MetricConfig, Gauge> CustomGaugeMetrics = new Dictionary<MetricConfig, Gauge>();    // <MetricConfig, Gauge>
-        
+
+        private string CustomCollectorsConfigFile { get; }
+        public CustomCollectorConfiguration(string customCollectorsFilePath)
+        {
+            if (!string.IsNullOrEmpty(customCollectorsFilePath))
+            {
+                CustomCollectorsConfigFile = customCollectorsFilePath;
+            }
+            else
+            {
+                CustomCollectorsConfigFile = "custom_collectors.yml";
+            }
+        }
         public void ReadCustomCollectorConfig()
         {
-            const string customCollectorsConfigFile = "custom_collectors.yml";
-            if (!File.Exists(customCollectorsConfigFile))
+            if (!File.Exists(CustomCollectorsConfigFile))
             {
                 return;
             }
-            
-            var configText = File.ReadAllText(customCollectorsConfigFile);
+
+            var configText = File.ReadAllText(CustomCollectorsConfigFile);
             var input = new StringReader(configText);
 
             var deserializer = new DeserializerBuilder()
@@ -77,7 +88,7 @@ namespace AzureBillingExporter
                 {
                     labelNames.Add(keyLabel);
                 }
-                
+
                 if (metricConfig.Type?.ToLower() == "gauge")
                 {
                     var gauge = Metrics.CreateGauge(metricConfig.MetricName, metricConfig.Help,
@@ -101,13 +112,13 @@ namespace AzureBillingExporter
             {
                 var dataColumnByKeyLabel = customData.GetByColumnName(keyLabel);
 
-                if (key.ReplaceLabelsToEnum)
+                if (key.ReplaceDateLabelsToEnum)
                 {
                     dataColumnByKeyLabel = DateEnumHelper.ReplaceDateValueToEnums(dataColumnByKeyLabel);
                 }
                 labelValues.Add(dataColumnByKeyLabel);
             }
-            
+
             gauge
                 .WithLabels(labelValues.ToArray())
                 .Set(customData.GetValueByColumnName(key.Value));

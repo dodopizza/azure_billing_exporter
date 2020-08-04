@@ -8,63 +8,59 @@ namespace AzureBillingExporter
     {
         private static readonly Gauge DailyCosts =
             Metrics.CreateGauge(
-                "azure_billing_daily", 
+                "azure_billing_daily",
                 "Daily cost by today, yesterday and day before yesterday",
                     new GaugeConfiguration
                     {
-                        LabelNames = new [] {"UsageDate", "DateEnum"}
+                        LabelNames = new [] {"DateEnum"}
                     });
-        
+
         private static readonly Gauge MonthlyCosts =
             Metrics.CreateGauge(
-                "azure_billing_monthly", 
+                "azure_billing_monthly",
                 "This month costs",
                     new GaugeConfiguration
                     {
                         LabelNames = new [] {"BillingMonth", "DateEnum"}
                     });
 
-        private static 
-            CustomCollectorConfiguration CustomCollectorConfiguration = new CustomCollectorConfiguration();
-
         private BillingQueryClient _billingQueryClient;
-        static AzureBillingMetricsGrapper()
-        {
-            CustomCollectorConfiguration.ReadCustomCollectorConfig();
-        }
-        
-        public AzureBillingMetricsGrapper(BillingQueryClient billingQueryClient)
+        private CustomCollectorConfiguration _customCollectorConfiguration;
+
+        public AzureBillingMetricsGrapper(BillingQueryClient billingQueryClient, CustomCollectorConfiguration customCollectorConfiguration)
         {
             _billingQueryClient = billingQueryClient;
+            _customCollectorConfiguration = customCollectorConfiguration;
+            _customCollectorConfiguration.ReadCustomCollectorConfig();
         }
-        
+
         public async Task DownloadFromApi(CancellationToken cancel)
         {
             //    Daily, monthly costs
             await foreach(var dayData in (await  _billingQueryClient.GetDailyData(cancel)).WithCancellation(cancel))
             {
                 var dayEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("UsageDate"));
-            
+
                 DailyCosts
-                    .WithLabels(dayData.GetByColumnName("UsageDate"),dayEnum)
+                    .WithLabels(dayEnum)
                     .Set(dayData.Cost);
             }
 
             await foreach(var dayData in (await  _billingQueryClient.GetMonthlyData(cancel)).WithCancellation(cancel))
             {
                 var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("BillingMonth"));
-            
+
                 MonthlyCosts
                     .WithLabels(dayData.GetByColumnName("BillingMonth"), monthEnum)
                     .Set(dayData.Cost);
             }
 
-            foreach (var (key, _) in CustomCollectorConfiguration.CustomGaugeMetrics)
+            foreach (var (key, _) in _customCollectorConfiguration.CustomGaugeMetrics)
             {
                 await foreach (var customData in
                     (await _billingQueryClient.GetCustomData(cancel, key.QueryFilePath)).WithCancellation(cancel))
                 {
-                    CustomCollectorConfiguration.SetValues(key, customData);
+                    _customCollectorConfiguration.SetValues(key, customData);
                 }
             }
         }
