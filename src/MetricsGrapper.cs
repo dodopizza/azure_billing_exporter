@@ -21,7 +21,7 @@ namespace AzureBillingExporter
                 "This month costs",
                     new GaugeConfiguration
                     {
-                        LabelNames = new [] {"BillingMonth", "DateEnum"}
+                        LabelNames = new [] {"DateEnum"}
                     });
 
         private BillingQueryClient _billingQueryClient;
@@ -51,7 +51,7 @@ namespace AzureBillingExporter
                 var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("BillingMonth"));
 
                 MonthlyCosts
-                    .WithLabels(dayData.GetByColumnName("BillingMonth"), monthEnum)
+                    .WithLabels(monthEnum)
                     .Set(dayData.Cost);
             }
 
