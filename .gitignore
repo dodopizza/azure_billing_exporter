@@ -3,6 +3,7 @@ obj/
 /packages/
 .idea
 out/
+src/.local/
 
 src/appsettings.Development.json
 /AzureBillingExporter.sln.DotSettings.user

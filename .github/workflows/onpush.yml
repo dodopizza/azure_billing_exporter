@@ -26,4 +26,7 @@ jobs:
 
       - name: Run build
         run:
-          dotnet build --configuration Release ./src/AzureBillingExporter.csproj
+          dotnet build -c Release AzureBillingExporter.sln
+
+      - name: Run unit-tests
+        run: dotnet test --no-build -c Release ./AzureBillingExporter.Tests/AzureBillingExporter.Tests.csproj
