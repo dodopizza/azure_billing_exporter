@@ -1,11 +1,11 @@
 # Azure Billing Exporter
 
-![Build](https://github.com/dodopizza/azure_billing_exporter/workflows/Build/badge.svg?branch=master)
+[![Build](https://github.com/dodopizza/azure_billing_exporter/workflows/Build/badge.svg?branch=master)](https://github.com/dodopizza/azure_billing_exporter/actions?query=workflow%3ABuild)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dodopizza/azure_billing_exporter)](https://hub.docker.com/r/dodopizza/azure_billing_exporter)
 
-# Install
+Expose Azure Billing data to prometheus format. Show daily, weekly, monthly cost by subscription. Also allow add custom billing query. 
 
-## Docker images
+## Quick start. Docker images
 
 ```bash
 docker run\
@@ -16,10 +16,9 @@ docker run\
         -v /PATH_TO_REPO/custom_queries/:/app/custom_queries/\
         -v /PATH_TO_REPO/custom_collectors.yml:/app/custom_collectors.yml\
         -p 9301:80 azure_billing_exporter:latest
-
 ```
 
-# How to run locally
+## How to run locally
 
 1. Create ServicePrincipal
 This SP should have access as Billing reader role [see Manage billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
