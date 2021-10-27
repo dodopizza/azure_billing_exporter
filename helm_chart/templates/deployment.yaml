@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "azure-billing-exporter.fullname" . }}-atfm
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "azure-billing-exporter.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "azure-billing-exporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "azure-billing-exporter.selectorLabels" . | nindent 8 }}     
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+      - name: config01
+        configMap:
+          name: azure-billing-configs
+          items:
+            - key: azure_billing_by_resource_group.json
+              path: azure_billing_by_resource_group.json
+      - name: config02
+        configMap:
+          name: azure-billing-configs
+          items:
+            - key: get_daily_or_monthly_costs.json
+              path: get_daily_or_monthly_costs.json
+      - name: collectors
+        configMap:
+          name: azure-billing-configs
+          items:
+            - key: custom_collectors.yml 
+              path: custom_collectors.yml 
+      containers:
+        - env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: ApiSettings__TenantId
+            valueFrom:
+              configMapKeyRef:
+                key: aad.tenant.id
+                name: {{ include "azure-billing-exporter.fullname" . }}-config
+          - name: ApiSettings__ClientId
+            valueFrom:
+              configMapKeyRef:
+                key: aad.client.id
+                name: {{ include "azure-billing-exporter.fullname" . }}-config
+          - name: ApiSettings__SubscriptionId
+            valueFrom:
+              configMapKeyRef:
+                key: aad.subscription.id
+                name: {{ include "azure-billing-exporter.fullname" . }}-config
+          - name: ApiSettings__ClientSecret
+            valueFrom:
+              secretKeyRef:
+                key: aad.client.secret
+                name: {{ include "azure-billing-exporter.fullname" . }}-secret
+          volumeMounts:
+            - name: config01
+              mountPath: /app/queries/azure_billing_by_resource_group.json
+              subPath: azure_billing_by_resource_group.json
+            - name: config02
+              mountPath: /app/queries/get_daily_or_monthly_costs.json
+              subPath: get_daily_or_monthly_costs.json
+            - name: collectors
+              mountPath: /app/custom_collectors.yml
+              subPath: custom_collectors.yml
+          name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}         
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            allowPrivilegeEscalation: false   
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

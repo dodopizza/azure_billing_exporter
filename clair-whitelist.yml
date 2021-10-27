@@ -1,0 +1,45 @@
+generalwhitelist:
+  # This may be an Apple-specific CVE, as of 2021-02-08, no details are available as to what the upstream fix is.
+  # https://ubuntu.com/security/CVE-2020-9794
+  CVE-2020-9794: sqlite3
+  # https://ubuntu.com/security/CVE-2021-3671 - We're not using SAMBA in the image
+  CVE-2021-3671: heimdal
+  CVE-2021-3671: samba
+  # https://ubuntu.com/security/CVE-2021-30535 - icu package not fixed yet in ubuntu focal (20)
+  CVE-2021-30535: icu
+  # https://ubuntu.com/security/CVE-2021-36222 - krb5 package not fixed yet in ubuntu focal (20)
+  CVE-2021-36222: krb5
+  # https://ubuntu.com/security/CVE-2020-29562 - fix for iconv problem in glibc package not released yet (https://sourceware.org/git/?p=glibc.git;h=228edd356f03bf62dcf2b1335f25d43c602ee68d)
+  CVE-2020-29562: glibc
+  # https://ubuntu.com/security/CVE-2020-27618 - fix for iconv problem in glibc package not released yet (https://sourceware.org/git/?p=glibc.git;a=commit;h=9a99c682144bdbd40792ebf822fe9264e0376fb5)
+  CVE-2020-27618: glibc
+  # https://ubuntu.com/security/CVE-2021-27645 - we're not using nscd - patch for glibc package not released yet (https://sourceware.org/git/?p=glibc.git;a=commit;h=dca565886b5e8bd7966e15f0ca42ee5cff686673)
+  CVE-2021-27645: glibc
+  # https://ubuntu.com/security/CVE-2020-6096 - We're not running in ARM arch
+  CVE-2020-6096: glibc
+  # https://ubuntu.com/security/CVE-2021-3326 - Only affects input sequences in the ISO-2022-JP-3, the metrics fetched here are UTF-8
+  CVE-2021-3326: glibc
+  # https://ubuntu.com/security/CVE-2019-25013 - Only affects invalid multi-byte input sequences in the EUC-KR encoding, the metrics fetched here are UTF-8
+  CVE-2019-25013: glibc
+  # https://ubuntu.com/security/CVE-2013-4235 - No fix available yet to focal
+  CVE-2013-4235: shadow
+  # https://ubuntu.com/security/CVE-2016-2781 - Deferred in 2017-08-01
+  CVE-2016-2781: coreutils
+  # https://ubuntu.com/security/CVE-2019-20838 - No fix available yet to focal
+  CVE-2019-20838: pcre3
+  # https://ubuntu.com/security/CVE-2020-9991 - Deferred
+  CVE-2020-9991: sqlite3
+  # https://ubuntu.com/security/CVE-2020-9849 - deferred
+  CVE-2020-9849: sqlite3
+  # https://ubuntu.com/security/CVE-2019-18276 - This issue appears to only affect bash when bash is setuid. Ubuntu does not ship with bash setuid, so this has minimal impact for Ubuntu users. - No fix yet to focal
+  CVE-2019-18276: bash
+  # https://ubuntu.com/security/CVE-2017-11164 - No fix available yet to focal
+  CVE-2017-11164: pcre3
+  # https://ubuntu.com/security/CVE-2018-1000654 - Deferred
+  CVE-2018-1000654: libtasn1-6 
+  # https://ubuntu.com/security/CVE-2020-14155 - No fix available yet to focal
+  CVE-2020-14155: pcre3
+  # https://ubuntu.com/security/CVE-2016-10228 - No fix available yet to focal
+  CVE-2016-10228: glibc
+  # https://ubuntu.com/security/CVE-2018-5709 - No fix available yet to focal
+  CVE-2018-5709: krb5
