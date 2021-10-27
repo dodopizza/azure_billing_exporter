@@ -3,7 +3,7 @@
     "windowsAuthentication": false, 
     "anonymousAuthentication": true, 
     "iisExpress": {
-      "applicationUrl": "http://localhost:16363",
+      "applicationUrl": "http://0.0.0.0:16363",
       "sslPort": 44332
     }
   },
@@ -18,8 +18,8 @@
     "AzureBillingExporter": {
       "commandName": "Project",
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:5000",
-      "launchUrl": "http://localhost:5000/metrics",
+      "applicationUrl": "http://0.0.0.0:5000",
+      "launchUrl": "http://0.0.0.0:5000/metrics",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
