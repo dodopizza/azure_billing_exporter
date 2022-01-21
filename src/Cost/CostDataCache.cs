@@ -1,15 +1,21 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using AzureBillingExporter.Configuration;
 
 namespace AzureBillingExporter.Cost
 {
     public class CostDataCache
     {
-        const int CacheItemExpirationTimeInMinutes = 5;
-
         private readonly ConcurrentDictionary<string, CacheItem> _costDataCache =
             new ConcurrentDictionary<string, CacheItem>();
+
+        private readonly EnvironmentConfiguration _environmentConfiguration;
+
+        public CostDataCache(EnvironmentConfiguration environmentConfiguration)
+        {
+            _environmentConfiguration = environmentConfiguration;
+        }
 
         public List<CostResultRows> GetDailyCost()
         {
@@ -49,7 +55,7 @@ namespace AzureBillingExporter.Cost
 
         private CacheItem GetCacheItem(string key)
         {
-            var expireDate = DateTime.UtcNow.Add(-1*TimeSpan.FromMinutes(CacheItemExpirationTimeInMinutes));
+            var expireDate = DateTime.UtcNow.Add(-1*TimeSpan.FromMinutes(_environmentConfiguration.CachePeriodInMinutes));
             var cacheItem = _costDataCache.ContainsKey(key) ? _costDataCache[key] : null;
             if (cacheItem == null || cacheItem.Created <= expireDate)
             {

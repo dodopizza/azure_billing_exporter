@@ -35,6 +35,8 @@ namespace AzureBillingExporter
             services.AddSingleton<IAccessTokenFactory, AccessTokenFactory>();
             services.AddSingleton<IAccessTokenProvider, AccessTokenProvider>();
 
+            services.AddSingleton(serviceProvider => Configuration.Get<EnvironmentConfiguration>());
+
             services.AddSingleton(serviceProvider =>
             {
                 var customCollectorsFilePath = Configuration["CustomCollectorsFilePath"];
@@ -65,11 +67,13 @@ namespace AzureBillingExporter
                 var billingQueryClient = resolver.GetRequiredService<BillingQueryClient>();
                 var costDataCache = resolver.GetRequiredService<CostDataCache>();
                 var customCollectorConfiguration = resolver.GetRequiredService<CustomCollectorConfiguration>();
+                var environmentConfiguration = resolver.GetRequiredService<EnvironmentConfiguration>();
                 var logger = resolver.GetRequiredService<ILogger<BackgroundCostCollectorHostedService>>();
                 return new BackgroundCostCollectorHostedService(
                     billingQueryClient,
                     costDataCache,
                     customCollectorConfiguration,
+                    environmentConfiguration,
                     logger);
             });
         }

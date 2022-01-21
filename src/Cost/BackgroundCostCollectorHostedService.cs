@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,15 +16,15 @@ namespace AzureBillingExporter.Cost
     {
         const string DailyMetricKey = "daily";
         const string MonthlyMetricKey = "monthly";
-        const int MaxOldestTimeInMinutes = 10;
+
+        const int MaxOldestTimeDriftInMinutes = 10;
         const int ThrottleAzureApiTimeInMinutes = 1;
-        const int ActualTimeInMinutes = 3;
-        const int SleepTimeInMinutes = 2;
 
         private readonly Dictionary<string, DateTime> _metricsStats = new Dictionary<string, DateTime>();
         private readonly BillingQueryClient _billingQueryClient;
         private readonly CostDataCache _costDataCache;
         private readonly CustomCollectorConfiguration _customCollectorConfiguration;
+        private readonly EnvironmentConfiguration _environmentConfiguration;
         private readonly ILogger<BackgroundCostCollectorHostedService> _logger;
 
         private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
@@ -34,11 +35,13 @@ namespace AzureBillingExporter.Cost
             BillingQueryClient billingQueryClient,
             CostDataCache costDataCache,
             CustomCollectorConfiguration customCollectorConfiguration,
+            EnvironmentConfiguration environmentConfiguration,
             ILogger<BackgroundCostCollectorHostedService> logger)
         {
             _billingQueryClient = billingQueryClient ?? throw new ArgumentNullException(nameof(billingQueryClient));
             _costDataCache = costDataCache ?? throw new ArgumentNullException(nameof(costDataCache));
             _customCollectorConfiguration = customCollectorConfiguration ?? throw new ArgumentNullException(nameof(customCollectorConfiguration));
+            _environmentConfiguration = environmentConfiguration ?? throw new ArgumentNullException(nameof(environmentConfiguration));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -62,7 +65,7 @@ namespace AzureBillingExporter.Cost
 
         private void FillMetricsStats()
         {
-            var notActualTime = DateTime.UtcNow.AddMinutes(-1*ActualTimeInMinutes).AddSeconds(-1);
+            var notActualTime = DateTime.UtcNow.AddMinutes(-1*_environmentConfiguration.CollectPeriodInMinutes);
             _metricsStats.Add(DailyMetricKey, notActualTime);
             _metricsStats.Add(MonthlyMetricKey, notActualTime);
 
@@ -101,65 +104,32 @@ namespace AzureBillingExporter.Cost
         private async Task StartCollectingDataInBackgroundAsync(CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var timer = Stopwatch.StartNew();
             while (!cancellationToken.IsCancellationRequested)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var oldestMetric = _metricsStats.OrderBy(x => x.Value).First();
-                if (oldestMetric.Value <= DateTime.UtcNow.AddMinutes(-1 * MaxOldestTimeInMinutes))
+
+                var actualDateTimeUtc = DateTime.UtcNow.AddMinutes(-1*_environmentConfiguration.CollectPeriodInMinutes);
+                if (_metricsStats.All(x => x.Value > actualDateTimeUtc))
                 {
-                    _logger.Log(LogLevel.Warning,
-                        $"Metric {oldestMetric.Key} last update time was more than {MaxOldestTimeInMinutes} minutes ago ({oldestMetric.Value})");
+                    var sleepTimeInMinutes =
+                        Math.Floor(_environmentConfiguration.CollectPeriodInMinutes - timer.Elapsed.TotalMinutes);
+                    _logger.Log(LogLevel.Debug,
+                        $"Will sleep next {sleepTimeInMinutes} minute(s)");
+                    if (sleepTimeInMinutes > 0)
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(sleepTimeInMinutes), cancellationToken);
+                    }
+                    timer.Restart();
                 }
+
+                var oldestMetric = _metricsStats.OrderBy(x => x.Value).First();
+
+                WarnOnTooOldMetric(oldestMetric);
+
                 try
                 {
-                    switch (oldestMetric.Key)
-                    {
-                        case DailyMetricKey:
-                        {
-                            _logger.Log(LogLevel.Debug, "Get daily metric data");
-                            var dailyData = new List<CostResultRows>();
-                            await foreach (var data in (await _billingQueryClient.GetDailyData(cancellationToken))
-                                .WithCancellation(cancellationToken))
-                            {
-                                dailyData.Add(data);
-                            }
-
-                            _costDataCache.SetDailyCost(dailyData);
-
-                            break;
-                        }
-                        case MonthlyMetricKey:
-                        {
-                            _logger.Log(LogLevel.Debug, "Get monthly metric data");
-                            var monthlyData = new List<CostResultRows>();
-                            await foreach (var data in (await _billingQueryClient.GetMonthlyData(cancellationToken))
-                                .WithCancellation(cancellationToken))
-                            {
-                                monthlyData.Add(data);
-                            }
-
-                            _costDataCache.SetMonthlyCost(monthlyData);
-                            break;
-                        }
-                        default:
-                        {
-                            _logger.Log(LogLevel.Debug, $"Get custom metric {oldestMetric.Key} data");
-
-                            var metricConfig =
-                                _customCollectorConfig.Metrics.Single(x => x.QueryFilePath == oldestMetric.Key);
-
-                            var metricsData = new List<CostResultRows>();
-                            var data = await _billingQueryClient.GetCustomData(cancellationToken,
-                                metricConfig.QueryFilePath);
-                            await foreach (var customData in data.WithCancellation(cancellationToken))
-                            {
-                                metricsData.Add(customData);
-                            }
-
-                            _costDataCache.SetCostByKey(oldestMetric.Key, metricsData);
-                            break;
-                        }
-                    }
+                    await UpdateMetricData(oldestMetric.Key, cancellationToken);
                 }
                 catch (TooManyRequestsException ex)
                 {
@@ -175,11 +145,67 @@ namespace AzureBillingExporter.Cost
                 {
                     _metricsStats[oldestMetric.Key] = DateTime.UtcNow;
                 }
+            }
+        }
 
-                var actualDateTimeUtc = DateTime.UtcNow.AddMinutes(-1*ActualTimeInMinutes);
-                if (_metricsStats.All(x => x.Value > actualDateTimeUtc))
+        private void WarnOnTooOldMetric(KeyValuePair<string, DateTime> metric)
+        {
+            var maxOldestTimeInMinutes = _environmentConfiguration.CollectPeriodInMinutes + MaxOldestTimeDriftInMinutes;
+            if (metric.Value <= DateTime.UtcNow.AddMinutes(-1 * maxOldestTimeInMinutes))
+            {
+                _logger.Log(LogLevel.Warning,
+                    $"Metric {metric.Key} last update time was more than {maxOldestTimeInMinutes} minutes ago ({metric.Value})");
+            }
+        }
+
+        private async Task UpdateMetricData(string metricKey, CancellationToken cancellationToken)
+        {
+            switch (metricKey)
+            {
+                case DailyMetricKey:
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(SleepTimeInMinutes), cancellationToken);
+                    _logger.Log(LogLevel.Debug, "Get daily metric data");
+                    var dailyData = new List<CostResultRows>();
+                    await foreach (var data in (await _billingQueryClient.GetDailyData(cancellationToken))
+                        .WithCancellation(cancellationToken))
+                    {
+                        dailyData.Add(data);
+                    }
+
+                    _costDataCache.SetDailyCost(dailyData);
+
+                    break;
+                }
+                case MonthlyMetricKey:
+                {
+                    _logger.Log(LogLevel.Debug, "Get monthly metric data");
+                    var monthlyData = new List<CostResultRows>();
+                    await foreach (var data in (await _billingQueryClient.GetMonthlyData(cancellationToken))
+                        .WithCancellation(cancellationToken))
+                    {
+                        monthlyData.Add(data);
+                    }
+
+                    _costDataCache.SetMonthlyCost(monthlyData);
+                    break;
+                }
+                default:
+                {
+                    _logger.Log(LogLevel.Debug, $"Get custom metric {metricKey} data");
+
+                    var metricConfig =
+                        _customCollectorConfig.Metrics.Single(x => x.QueryFilePath == metricKey);
+
+                    var metricsData = new List<CostResultRows>();
+                    var data = await _billingQueryClient.GetCustomData(cancellationToken,
+                        metricConfig.QueryFilePath);
+                    await foreach (var customData in data.WithCancellation(cancellationToken))
+                    {
+                        metricsData.Add(customData);
+                    }
+
+                    _costDataCache.SetCostByKey(metricKey, metricsData);
+                    break;
                 }
             }
         }

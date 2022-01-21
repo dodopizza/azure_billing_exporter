@@ -9,7 +9,7 @@ namespace AzureBillingExporter.PrometheusMetrics
 {
     public class CustomMetricsService
     {
-        public readonly Dictionary<MetricConfig, Gauge> CustomGaugeMetrics = new Dictionary<MetricConfig, Gauge>();    // <MetricConfig, Gauge>
+        public readonly Dictionary<MetricConfig, Gauge> CustomGaugeMetrics = new Dictionary<MetricConfig, Gauge>();
 
         private readonly CustomCollectorConfiguration _customCollectorConfiguration;
         public CustomMetricsService(CustomCollectorConfiguration customCollectorConfiguration)
