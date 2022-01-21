@@ -3,7 +3,7 @@ using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace AzureBillingExporter
+namespace AzureBillingExporter.Cost
 {
     public class CostResultRows
     {
@@ -17,13 +17,13 @@ namespace AzureBillingExporter
                 {
                     return 0;
                 }
-                
+
                 return double.Parse(preTaxCosts);
             }
         }
 
 
-        public string Date 
+        public string Date
         {
             get { return GetByColumnName("UsageDate"); }
         }
@@ -44,23 +44,23 @@ namespace AzureBillingExporter
         public double GetValueByColumnName(string name)
         {
             var strVal = GetByColumnName(name);
-            
+
             if (string.IsNullOrEmpty(strVal))
             {
                 return 0;
             }
-                
+
             return double.Parse(strVal);
         }
         public List<string> ColumnNames { get; } = new List<string>();
         public List<string> Values { get;  } = new List<string>();
-        
+
         public static CostResultRows Cast(dynamic columns, dynamic singleRow)
         {
             var parsedRow = new CostResultRows();
 
             parsedRow.Values.AddRange(ClearParse(singleRow.ToString()));
-            
+
             foreach (var column in columns)
             {
                 parsedRow.ColumnNames.Add(column.name.ToString());

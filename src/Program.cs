@@ -4,15 +4,12 @@ using AzureBillingExporter.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Serilog;
-using Serilog.Core;
-using Serilog.Events;
 using Serilog.Formatting.Elasticsearch;
 
 namespace AzureBillingExporter
 {
-    public class Program
+    public static class Program
     {
         public static async Task<int> Main(string[] args)
         {

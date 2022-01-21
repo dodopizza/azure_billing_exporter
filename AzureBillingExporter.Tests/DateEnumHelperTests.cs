@@ -1,4 +1,5 @@
 using System;
+using AzureBillingExporter.PrometheusMetrics;
 using NUnit.Framework;
 
 namespace AzureBillingExporter.Tests

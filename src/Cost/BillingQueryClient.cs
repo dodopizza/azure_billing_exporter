@@ -6,9 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AzureBillingExporter.AzureApi;
 using DotLiquid;
-using Microsoft.Extensions.Logging;
 
-namespace AzureBillingExporter
+namespace AzureBillingExporter.Cost
 {
     public class BillingQueryClient
     {

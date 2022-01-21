@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using AzureBillingExporter.Cost;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -56,6 +57,11 @@ namespace AzureBillingExporter.AzureApi
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    throw new TooManyRequestsException($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+                }
+
                 throw new Exception($"{response.StatusCode} {await response.Content.ReadAsStringAsync()}");
             }
 

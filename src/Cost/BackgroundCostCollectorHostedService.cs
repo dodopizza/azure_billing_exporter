@@ -1,0 +1,185 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using AzureBillingExporter.AzureApi;
+using AzureBillingExporter.Configuration;
+using AzureBillingExporter.Configuration.Metrics;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace AzureBillingExporter.Cost
+{
+    public class BackgroundCostCollectorHostedService : IHostedService
+    {
+        const string DailyMetricKey = "daily";
+        const string MonthlyMetricKey = "monthly";
+        const int MaxOldestTimeInMinutes = 10;
+        const int ThrottleAzureApiTimeInMinutes = 1;
+        const int ActualTimeInMinutes = 3;
+        const int SleepTimeInMinutes = 2;
+
+        private readonly Dictionary<string, DateTime> _metricsStats = new Dictionary<string, DateTime>();
+        private readonly BillingQueryClient _billingQueryClient;
+        private readonly CostDataCache _costDataCache;
+        private readonly CustomCollectorConfiguration _customCollectorConfiguration;
+        private readonly ILogger<BackgroundCostCollectorHostedService> _logger;
+
+        private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
+        private Task _executingTask = null!;
+        private CustomCollectorConfig _customCollectorConfig;
+
+        public BackgroundCostCollectorHostedService(
+            BillingQueryClient billingQueryClient,
+            CostDataCache costDataCache,
+            CustomCollectorConfiguration customCollectorConfiguration,
+            ILogger<BackgroundCostCollectorHostedService> logger)
+        {
+            _billingQueryClient = billingQueryClient ?? throw new ArgumentNullException(nameof(billingQueryClient));
+            _costDataCache = costDataCache ?? throw new ArgumentNullException(nameof(costDataCache));
+            _customCollectorConfiguration = customCollectorConfiguration ?? throw new ArgumentNullException(nameof(customCollectorConfiguration));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        public Task StartAsync(CancellationToken cancellationToken)
+        {
+            _logger.LogInformation("Azure Billing data collector background hosted service - Starting...");
+
+            FillMetricsStats();
+
+            _executingTask = StartCollectingDataInBackgroundAsync(_stoppingCts.Token);
+            if (_executingTask.IsCompleted)
+            {
+                return _executingTask;
+            }
+
+            _logger.LogInformation("Azure Billing data collector background hosted service - Has started.");
+            return Task.CompletedTask;
+        }
+
+        private void FillMetricsStats()
+        {
+            var notActualTime = DateTime.UtcNow.AddMinutes(-1*ActualTimeInMinutes).AddSeconds(-1);
+            _metricsStats.Add(DailyMetricKey, notActualTime);
+            _metricsStats.Add(MonthlyMetricKey, notActualTime);
+
+            _customCollectorConfig = _customCollectorConfiguration.GetCustomCollectorConfig();
+            foreach (var metric in _customCollectorConfig.Metrics)
+            {
+                _metricsStats.Add(metric.QueryFilePath, notActualTime);
+            }
+        }
+
+        public async Task StopAsync(CancellationToken cancellationToken)
+        {
+            if (_executingTask == null)
+            {
+                _logger.LogInformation("Azure Billing data collector background hosted service - Already stopped.");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("Azure Billing data collector background hosted service - Stopping...");
+                // Signal cancellation to the executing method
+                _stoppingCts.Cancel();
+            }
+            finally
+            {
+                // Wait until the task completes or the stop token triggers
+                await Task.WhenAny(
+                    _executingTask,
+                    Task.Delay(Timeout.Infinite, cancellationToken));
+            }
+
+            _logger.LogInformation("Azure Billing data collector background hosted service - Stopped.");
+        }
+
+        private async Task StartCollectingDataInBackgroundAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var oldestMetric = _metricsStats.OrderBy(x => x.Value).First();
+                if (oldestMetric.Value <= DateTime.UtcNow.AddMinutes(-1 * MaxOldestTimeInMinutes))
+                {
+                    _logger.Log(LogLevel.Warning,
+                        $"Metric {oldestMetric.Key} last update time was more than {MaxOldestTimeInMinutes} minutes ago ({oldestMetric.Value})");
+                }
+                try
+                {
+                    switch (oldestMetric.Key)
+                    {
+                        case DailyMetricKey:
+                        {
+                            _logger.Log(LogLevel.Debug, "Get daily metric data");
+                            var dailyData = new List<CostResultRows>();
+                            await foreach (var data in (await _billingQueryClient.GetDailyData(cancellationToken))
+                                .WithCancellation(cancellationToken))
+                            {
+                                dailyData.Add(data);
+                            }
+
+                            _costDataCache.SetDailyCost(dailyData);
+
+                            break;
+                        }
+                        case MonthlyMetricKey:
+                        {
+                            _logger.Log(LogLevel.Debug, "Get monthly metric data");
+                            var monthlyData = new List<CostResultRows>();
+                            await foreach (var data in (await _billingQueryClient.GetMonthlyData(cancellationToken))
+                                .WithCancellation(cancellationToken))
+                            {
+                                monthlyData.Add(data);
+                            }
+
+                            _costDataCache.SetMonthlyCost(monthlyData);
+                            break;
+                        }
+                        default:
+                        {
+                            _logger.Log(LogLevel.Debug, $"Get custom metric {oldestMetric.Key} data");
+
+                            var metricConfig =
+                                _customCollectorConfig.Metrics.Single(x => x.QueryFilePath == oldestMetric.Key);
+
+                            var metricsData = new List<CostResultRows>();
+                            var data = await _billingQueryClient.GetCustomData(cancellationToken,
+                                metricConfig.QueryFilePath);
+                            await foreach (var customData in data.WithCancellation(cancellationToken))
+                            {
+                                metricsData.Add(customData);
+                            }
+
+                            _costDataCache.SetCostByKey(oldestMetric.Key, metricsData);
+                            break;
+                        }
+                    }
+                }
+                catch (TooManyRequestsException ex)
+                {
+                    _logger.LogError(ex, ex.Message);
+                    _logger.LogInformation("Too many requests to Azure Billing API. Let's sleep for 1 minute");
+                    await Task.Delay(TimeSpan.FromMinutes(ThrottleAzureApiTimeInMinutes), cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, ex.Message);
+                }
+                finally
+                {
+                    _metricsStats[oldestMetric.Key] = DateTime.UtcNow;
+                }
+
+                var actualDateTimeUtc = DateTime.UtcNow.AddMinutes(-1*ActualTimeInMinutes);
+                if (_metricsStats.All(x => x.Value > actualDateTimeUtc))
+                {
+                    await Task.Delay(TimeSpan.FromMinutes(SleepTimeInMinutes), cancellationToken);
+                }
+            }
+        }
+    }
+}
