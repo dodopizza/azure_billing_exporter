@@ -48,6 +48,8 @@ namespace AzureBillingExporter.Cost
 
             FillMetricsStats();
 
+            _logger.LogInformation($"Total metrics to process: {_metricsStats.Count}");
+
             _executingTask = StartCollectingDataInBackgroundAsync(_stoppingCts.Token);
             if (_executingTask.IsCompleted)
             {
@@ -162,7 +164,7 @@ namespace AzureBillingExporter.Cost
                 catch (TooManyRequestsException ex)
                 {
                     _logger.LogError(ex, ex.Message);
-                    _logger.LogInformation("Too many requests to Azure Billing API. Let's sleep for 1 minute");
+                    _logger.LogWarning($"Too many requests to Azure Billing API. Let's sleep for {ThrottleAzureApiTimeInMinutes} minute(s)");
                     await Task.Delay(TimeSpan.FromMinutes(ThrottleAzureApiTimeInMinutes), cancellationToken);
                 }
                 catch (Exception ex)
