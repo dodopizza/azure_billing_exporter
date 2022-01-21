@@ -20,7 +20,6 @@
       <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
       <PackageReference Include="Serilog.Formatting.Elasticsearch" Version="8.4.1" />
       <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
-      <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="8.4.1" />
       <PackageReference Include="YamlDotNet" Version="8.1.2" />
     </ItemGroup>
 </Project>
