@@ -54,13 +54,13 @@ namespace AzureBillingExporter.AzureApi
         {
             if (_executingTask == null)
             {
-                _logger.LogInformation("Devices API background access tokens refreshing hosted service - Already stopped.");
+                _logger.LogInformation("Azure Billing API background access tokens refreshing hosted service - Already stopped.");
                 return;
             }
 
             try
             {
-                _logger.LogInformation("Devices API background access tokens refreshing hosted service - Stopping...");
+                _logger.LogInformation("Azure Billing API background access tokens refreshing hosted service - Stopping...");
                 // Signal cancellation to the executing method
                 _stoppingCts.Cancel();
             }
@@ -72,7 +72,7 @@ namespace AzureBillingExporter.AzureApi
                     Task.Delay(Timeout.Infinite, cancellationToken));
             }
 
-            _logger.LogInformation("Devices API background access tokens refreshing hosted service - Stopped.");
+            _logger.LogInformation("Azure Billing API background access tokens refreshing hosted service - Stopped.");
         }
 
         private async Task StartRefreshingAccessTokensInBackgroundAsync(CancellationToken cancellationToken)

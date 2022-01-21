@@ -32,13 +32,16 @@ namespace AzureBillingExporter
 
         private BillingQueryClient _billingQueryClient;
         private CustomCollectorConfiguration _customCollectorConfiguration;
+        private CostDataCache _сostDataCache;
 
         public AzureBillingMetricsGrapper(BillingQueryClient billingQueryClient,
             CustomCollectorConfiguration customCollectorConfiguration,
+            CostDataCache сostDataCache,
             ILogger<AzureBillingMetricsGrapper> logger)
         {
             _billingQueryClient = billingQueryClient;
             _customCollectorConfiguration = customCollectorConfiguration;
+            _сostDataCache = сostDataCache;
             _logger = logger;
             _customCollectorConfiguration.ReadCustomCollectorConfig();
         }
@@ -51,43 +54,43 @@ namespace AzureBillingExporter
 
             //    Daily, monthly costs
             _logger.Log(LogLevel.Debug, "Get daily data");
-            await foreach(var dayData in (await  _billingQueryClient.GetDailyData(cancel)).WithCancellation(cancel))
+            foreach(var data in _сostDataCache.GetDailyCost())
             {
-                var dayEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("UsageDate"));
+                var dayEnum = DateEnumHelper.ReplaceDateValueToEnums(data.GetByColumnName("UsageDate"));
 
                 DailyCosts
                     .WithLabels(dayEnum)
-                    .Set(dayData.Cost);
+                    .Set(data.Cost);
             }
 
             _logger.Log(LogLevel.Debug, "Get monthly data");
-            await foreach(var dayData in (await  _billingQueryClient.GetMonthlyData(cancel)).WithCancellation(cancel))
+            foreach(var data in _сostDataCache.GetMonthlyCost())
             {
-                var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(dayData.GetByColumnName("BillingMonth"));
+                var monthEnum = DateEnumHelper.ReplaceDateValueToEnums(data.GetByColumnName("BillingMonth"));
 
                 MonthlyCosts
                     .WithLabels(monthEnum)
-                    .Set(dayData.Cost);
+                    .Set(data.Cost);
             }
 
             _logger.Log(LogLevel.Debug, "Get custom data in parallel");
-            var customMetricsDataTasks = _customCollectorConfiguration.CustomGaugeMetrics.Keys
-                .Select(x => StartMetricDataTask(x, cancel)).ToArray();
-
-            Task.WaitAll(customMetricsDataTasks, cancel);
-            foreach (var task in customMetricsDataTasks)
-            {
-                if (task != null && task.Exception != null)
-                    throw task.Exception;
-            }
-
-            foreach (var task in customMetricsDataTasks)
-            {
-                await foreach (var customData in task.Result.Data.WithCancellation(cancel))
-                {
-                    _customCollectorConfiguration.SetValues(task.Result.Config, customData);
-                }
-            }
+            // var customMetricsDataTasks = _customCollectorConfiguration.CustomGaugeMetrics.Keys
+            //     .Select(x => StartMetricDataTask(x, cancel)).ToArray();
+            //
+            // Task.WaitAll(customMetricsDataTasks, cancel);
+            // foreach (var task in customMetricsDataTasks)
+            // {
+            //     if (task != null && task.Exception != null)
+            //         throw task.Exception;
+            // }
+            //
+            // foreach (var task in customMetricsDataTasks)
+            // {
+            //     await foreach (var customData in task.Result.Data.WithCancellation(cancel))
+            //     {
+            //         _customCollectorConfiguration.SetValues(task.Result.Config, customData);
+            //     }
+            // }
 
             timer.Stop();
             _logger.Log(LogLevel.Debug, "Metrics get total time: " + timer.Elapsed);

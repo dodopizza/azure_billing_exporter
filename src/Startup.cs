@@ -32,6 +32,7 @@ namespace AzureBillingExporter
             services.AddSingleton<BillingQueryClient>();
             services.AddSingleton<AzureCostManagementClient>();
             services.AddSingleton<AzureBillingMetricsGrapper>();
+            services.AddSingleton<CostDataCache>();
 
             services.AddSingleton<CustomCollectorConfiguration>(serviceProvider=>
             {
@@ -53,6 +54,17 @@ namespace AzureBillingExporter
                     TimeSpan.FromMinutes(50),
                     logger,
                     TimeSpan.FromSeconds(10));
+            });
+
+            services.AddHostedService(resolver =>
+            {
+                var billingQueryClient = resolver.GetRequiredService<BillingQueryClient>();
+                var costDataCache = resolver.GetRequiredService<CostDataCache>();
+                var logger = resolver.GetRequiredService<ILogger<BackgroundCostCollectorHostedService>>();
+                return new BackgroundCostCollectorHostedService(
+                    billingQueryClient,
+                    costDataCache,
+                    logger);
             });
         }
 
