@@ -90,8 +90,8 @@ namespace AzureBillingExporter
 
             app.UseRouting();
 
-            var azureBillingMetricsGrabber = app.ApplicationServices.GetService<MetricsUpdater>();
-            Metrics.DefaultRegistry.AddBeforeCollectCallback(() => { azureBillingMetricsGrabber.Update(); });
+            var metricsUpdater = app.ApplicationServices.GetService<MetricsUpdater>();
+            Metrics.DefaultRegistry.AddBeforeCollectCallback(() => { metricsUpdater.Update(); });
 
             // ASP.NET Core 3 or newer
             app.UseEndpoints(endpoints => { endpoints.MapMetrics(); });
