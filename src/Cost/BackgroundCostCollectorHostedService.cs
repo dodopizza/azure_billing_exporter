@@ -113,7 +113,7 @@ namespace AzureBillingExporter.Cost
                 if (_metricsStats.All(x => x.Value > actualDateTimeUtc))
                 {
                     var sleepTimeInMinutes =
-                        Math.Floor(_environmentConfiguration.CollectPeriodInMinutes - timer.Elapsed.TotalMinutes);
+                        Math.Ceiling(_environmentConfiguration.CollectPeriodInMinutes - timer.Elapsed.TotalMinutes);
                     _logger.Log(LogLevel.Debug,
                         $"Will sleep next {sleepTimeInMinutes} minute(s)");
                     if (sleepTimeInMinutes > 0)
