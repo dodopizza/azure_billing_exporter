@@ -1,14 +1,43 @@
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Formatting.Elasticsearch;
 
 namespace AzureBillingExporter
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static int Main(string[] args)
         {
-            CreateHostBuilder(args).Build().Run();
+            // The initial "bootstrap" logger is able to log errors during start-up. It's completely replaced by the
+            // logger configured in `UseSerilog()` below, once configuration and dependency-injection have both been
+            // set up successfully.
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console(new ElasticsearchJsonFormatter(inlineFields: true))
+                .CreateBootstrapLogger();
+
+            Log.Information("Starting up");
+
+            try
+            {
+                CreateHostBuilder(args).Build().Run();
+
+                Log.Information("Stopped cleanly");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "An unhandled exception occured during bootstrapping");
+                return 1;
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -16,8 +45,12 @@ namespace AzureBillingExporter
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
-                    logging.AddConsole();
                 })
+                .UseSerilog((context, services, configuration) => configuration
+                    .ReadFrom.Configuration(context.Configuration)
+                    .ReadFrom.Services(services)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console(new ElasticsearchJsonFormatter(inlineFields: true)))
                 .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
     }
 }
