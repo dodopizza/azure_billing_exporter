@@ -3,7 +3,7 @@
 [![Build](https://github.com/dodopizza/azure_billing_exporter/workflows/Build/badge.svg?branch=master)](https://github.com/dodopizza/azure_billing_exporter/actions?query=workflow%3ABuild)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dodopizza/azure_billing_exporter)](https://hub.docker.com/r/dodopizza/azure_billing_exporter)
 
-Expose Azure Billing data to prometheus format. Show daily, weekly, monthly cost by subscription. Also allow add custom billing query. 
+Expose Azure Billing data to prometheus format. Show daily, weekly, monthly cost by subscription. Also allow add custom billing query.
 
 ## Quick start. Docker images
 
@@ -21,60 +21,89 @@ docker run\
 ## How to run locally
 
 1. Create ServicePrincipal
-This SP should have access as Billing reader role [see Manage billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
 
-2. Set configuration
+    This SP should have access as `Billing reader` role [see Manage billing access](https://docs.microsoft.com/en-us/azure/cost-management-billing/manage/manage-billing-access)
 
-2.1. Environment Variables
+1. Set configuration
 
-```bash
-    EXPORT ApiSettings__SubscriptionId="YOUR_SUBSCRIPTION_ID"
-    EXPORT ApiSettings__TenantId="YOUR_TENANT_ID"
-    EXPORT ApiSettings__ClientId="YOUR_CLIENT_ID"
-    EXPORT ApiSettings__ClientSecret="CLIENT_SECRET_SP"
-```
+    1. Environment Variables
 
-2.2. `appsettings.json`
-Using for local developing
+        ```bash
+            EXPORT ApiSettings__SubscriptionId="YOUR_SUBSCRIPTION_ID"
+            EXPORT ApiSettings__TenantId="YOUR_TENANT_ID"
+            EXPORT ApiSettings__ClientId="YOUR_CLIENT_ID"
+            EXPORT ApiSettings__ClientSecret="CLIENT_SECRET_SP"
+        ```
 
-```json
-  "ApiSettings": {
-    "SubscriptionId": "YOUR_SUBSCRIPTION_ID", 
-    "TenantId": "YOUR_TENANT_ID", 
-    "ClientId": "YOUR_CLIENT_ID", 
-    "ClientSecret": "CLIENT_SECRET_SP"
-  },
-```
+    1. Configuration file `appsettings.json`
 
-2.3 Tracing logs
+        Using for local developing
 
-For trace all billing query and response set log level to trace info `appsettings.Development.json`
+        ```json
+        "ApiSettings": {
+            "SubscriptionId": "YOUR_SUBSCRIPTION_ID",
+            "TenantId": "YOUR_TENANT_ID",
+            "ClientId": "YOUR_CLIENT_ID",
+            "ClientSecret": "CLIENT_SECRET_SP"
+        },
+        ```
 
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Trace",   
-```
+1. Tracing logs
 
-3. Install dotnet SDK
-Download and install .NET Core 3.1 SDK or above 
-<https://dotnet.microsoft.com/download/dotnet-core/3.1>
+    For trace all billing query and response set log level to trace info `appsettings.Development.json`
 
+    ```json
+    "Serilog": {
+    "MinimumLevel": {
+        "Default": "Trace"
+    }
+    ```
 
-4. Run dotnet
+1. Install dotnet SDK
 
-```bash
-dotnet run --project AzureBillingExporter/AzureBillingExporter.csproj
-```
+    Download and install .NET Core 3.1 SDK or above
+    <https://dotnet.microsoft.com/download/dotnet-core/3.1>
 
-5. Open metrics
+1. Run dotnet
 
-```bash
-curl http://localhost:5000/metrics
-```
+    ```bash
+    dotnet run --project AzureBillingExporter/AzureBillingExporter.csproj
+    ```
 
-# Metrics
+1. Open metrics
+
+    ```bash
+    curl http://localhost:5000/metrics
+    ```
+
+## Architecture
+
+According Microsoft [documentation](https://docs.microsoft.com/en-us/azure/cost-management-billing/costs/manage-automation#error-code-429---call-count-has-exceeded-rate-limits) application may create only 30 API calls per minute.
+After that threshold application will get `Too Many Requests` response from API.
+
+> Error code 429 - Call count has exceeded rate limits
+>
+> To enable a consistent experience for all Cost Management subscribers, Cost Management APIs are rate limited. When you reach the limit, you receive the HTTP status code 429: Too many requests. The current throughput limits for our APIs are as follows:
+>
+> 30 calls per minute - It's done per scope, per user, or application.
+>
+> 200 calls per minute - It's done per tenant, per user, or application.
+
+To avoid such errors, this exporter has background job to get data from API.
+Received cost data placed in memory cache. Prometheus scriber calls on `/metrics` get data from cache and get quick response.
+
+In case of `Too Many Requests` errors, background job waits 1 minute before next calls.
+
+## Configuration
+
+| *Setting*  | *Type* | *Description* |
+|---|---|---|
+| `LogsAtJsonFormat` | bool | Write logs in plain text or JSON format |
+| `CollectPeriodInMinutes` | int | Period in minutes to make API call to the Azure, to get metrics |
+| `CachePeriodInMinutes` | int | Period in minutes to cache API call results |
+| `CustomCollectorsFilePath` | string | Path to YAML file with custom collectors (see [Custom Metrics](#Custom-Metrics)) |
+
+## Metrics
 
 | *Metrics Name*  | *Description* |
 |---|---|
@@ -83,9 +112,9 @@ curl http://localhost:5000/metrics
 | `azure_billing_daily_before_yesterday`  | Day before yesterday all costs |
 | `azure_billing_monthly`  | Costs by current month |
 
-# Custom Metrics
+## Custom Metrics
 
-## Set custom metrics configs into `custom_collectors.yml`
+### Set custom metrics configs into `custom_collectors.yml`
 
 ```yaml
 # A Prometheus metric with (optional) additional labels, value and labels populated from one query.
@@ -103,14 +132,16 @@ metrics:
     replace_date_labels_to_enum: true  # replace `05/01/2020 00:00:00` to `last_month`, `UsageDate="20200624"` to `yesterday`. Default false
     query_file: './custom_queries/azure_billing_by_resource_group.json'
 ```
-## You can set custom path to collectors.yaml file
+
+### You can set custom path to collectors.yaml file
 
 Into `appsettings.Development.json` (or env `CustomCollectorsFilePath`) set:
+
 ```json
   "CustomCollectorsFilePath" : "./local/custom_collectors.yml",
 ```
 
-## Query to billing api
+### Query to billing api
 
 ```json
 {
@@ -144,9 +175,9 @@ Into `appsettings.Development.json` (or env `CustomCollectorsFilePath`) set:
 }
 ```
 
-## Datetime constants into query files
+### Datetime constants into query files
 
-You can use special constant into query file. For this use `{{ }}` template notation [Liquid Template Language](https://shopify.github.io/liquid/) . 
+You can use special constant into query file. For this use `{{ }}` template notation [Liquid Template Language](https://shopify.github.io/liquid/) .
 DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 
 | *Constant*  | *Description* |  *Example* |
@@ -160,6 +191,7 @@ DateTime Constants (using server datetime). If today is '2020-06-23T08:12:45':
 | `YearAgo` |  This month first day year ago. | '2019-06-01T00:00:00.0000000' |
 
 All this constants you can use into billing query json files:
+
 ```json
   "timePeriod": {
     "from": "{{ PrevMonthStart }}",
@@ -167,9 +199,7 @@ All this constants you can use into billing query json files:
   }
 ```
 
-
-
-# Try Azure Billing Query on sandbox
+## Try Azure Billing Query on sandbox
 
 Go to docs:
 <https://docs.microsoft.com/en-us/rest/api/cost-management/query/usage>
@@ -208,19 +238,11 @@ Body:
 }
 ```
 
-
-# Notice
+## Notice
 
 Request duration measuring for exporter:
-```
-▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
-Total: 19.220319s
 
-~
+```console
 ▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
-Total: 17.939426s
-
-~
-▶ curl -o /dev/null -s -w 'Total: %{time_total}s\n' http://localhost:5000/metrics
-Total: 18.603152s
+Total: 0.009669s
 ```

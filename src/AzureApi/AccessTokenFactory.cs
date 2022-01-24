@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using AzureBillingExporter.Cost;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
