@@ -20,7 +20,7 @@ namespace AzureBillingExporter.AzureApi
             _apiSettings = apiSettings;
             _logger = logger;
             
-            if (string.IsNullOrEmpty(_apiSettings.ClientId))
+            if (!string.IsNullOrEmpty(_apiSettings.ClientId))
             {
                 _logger.LogTrace($"Using client credentials for Client ID ", _apiSettings.ClientId);
                 credentials = new ClientSecretCredential(_apiSettings.TenantId, _apiSettings.ClientId, _apiSettings.ClientSecret);
