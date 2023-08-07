@@ -61,8 +61,8 @@ docker run\
 
 1. Install dotnet SDK
 
-    Download and install .NET Core 3.1 SDK or above
-    <https://dotnet.microsoft.com/download/dotnet-core/3.1>
+    Download and install .NET Core 6.0 SDK or above
+    <https://dotnet.microsoft.com/en-us/download/dotnet/6.0>
 
 1. Run dotnet
 
