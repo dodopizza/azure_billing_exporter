@@ -60,6 +60,10 @@ namespace AzureBillingExporter.PrometheusMetrics
                 {
                     dataColumnByKeyLabel = DateEnumHelper.ReplaceDateValueToEnums(dataColumnByKeyLabel);
                 }
+                if (dataColumnByKeyLabel == null)
+                {
+                    dataColumnByKeyLabel = "";
+                }
                 labelValues.Add(dataColumnByKeyLabel);
             }
 
